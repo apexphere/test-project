@@ -1,0 +1,21 @@
+{
+  "name": "test-automation",
+  "version": "1.0.0",
+  "description": "Playwright test automation for automationexercise.com",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen https://automationexercise.com"
+  },
+  "keywords": ["playwright", "testing", "automation"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.13.4",
+    "typescript": "^5.7.3"
+  }
+}
