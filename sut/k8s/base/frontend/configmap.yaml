@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: sut
+data:
+  # VITE_* vars are build-time only. These are used by the
+  # local-setup.sh script as docker build args.
+  api_url: "http://localhost:8080/api"
+  auth_url: "http://localhost:8080/auth"

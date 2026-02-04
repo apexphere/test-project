@@ -1,17 +1,17 @@
-# Base Kustomization
-# TODO: Implement after design approval
-
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: sut
 
 resources:
-  # - namespace.yaml
-  # - frontend/
-  # - backend/
-  # - auth-service/
-  # - postgres-main/
-  # - postgres-auth/
-  # - redis/
-  # - ingress.yaml
+  - namespace.yaml
+  - postgres-main
+  - postgres-auth
+  - redis
+  - auth-service
+  - backend
+  - frontend
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: mini-ecommerce

@@ -2,87 +2,212 @@
 
 Kubernetes deployment configuration for the Mini E-commerce platform.
 
-## Status
+## Prerequisites
 
-🚧 **Scaffolded** - Awaiting design approval before implementation.
+- **k3d** (local) or **kind** (CI) - Lightweight Kubernetes
+- **kubectl** - Kubernetes CLI
+- **Docker** - Container runtime
 
-## Structure
+```bash
+# Install on macOS
+brew install k3d kubectl docker
+```
+
+## Quick Start (Local Development)
+
+```bash
+# One-command setup
+./scripts/local-setup.sh
+
+# Access the app
+open http://localhost:8080
+```
+
+This will:
+1. Create a k3d cluster (`sut-dev`)
+2. Build all Docker images
+3. Import images into k3d
+4. Deploy all services
+5. Seed the databases
+
+## Manual Deployment
+
+### 1. Create Cluster
+
+```bash
+# k3d (local development)
+k3d cluster create sut-dev --port 8080:80@loadbalancer
+
+# kind (CI)
+kind create cluster --name sut-ci
+```
+
+### 2. Build & Load Images
+
+```bash
+cd sut
+
+# Build images
+docker build -t auth-service:local ./auth-service
+docker build -t backend:local ./backend
+docker build -t frontend:local ./frontend
+
+# Load into k3d
+k3d image import auth-service:local backend:local frontend:local -c sut-dev
+
+# Or load into kind
+kind load docker-image auth-service:local backend:local frontend:local --name sut-ci
+```
+
+### 3. Deploy
+
+```bash
+# Local (k3d)
+kubectl apply -k k8s/overlays/local
+
+# CI (kind)
+kubectl apply -k k8s/overlays/ci
+```
+
+### 4. Verify
+
+```bash
+# Check pods
+kubectl get pods -n sut
+
+# Check services
+kubectl get svc -n sut
+
+# View logs
+kubectl logs -n sut -l app=auth-service
+kubectl logs -n sut -l app=backend
+```
+
+### 5. Seed Databases
+
+```bash
+kubectl exec -n sut deployment/auth-service -- python -m app.db.seed
+kubectl exec -n sut deployment/backend -- python -m app.db.seed
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                         Ingress                          │
+│                    (nginx, port 8080)                    │
+├─────────────────────────────────────────────────────────┤
+│   /              │   /api/*        │   /auth/*          │
+│   ↓              │   ↓             │   ↓                │
+│ ┌──────────┐    │ ┌─────────┐    │ ┌──────────────┐   │
+│ │ Frontend │    │ │ Backend │    │ │ Auth Service │   │
+│ │ (React)  │    │ │(FastAPI)│    │ │  (FastAPI)   │   │
+│ └──────────┘    │ └────┬────┘    │ └──────┬───────┘   │
+│                 │      │         │        │           │
+│                 │      ▼         │        ▼           │
+│                 │ ┌─────────┐    │ ┌──────────────┐   │
+│                 │ │Postgres │    │ │  Postgres    │   │
+│                 │ │ (main)  │    │ │   (auth)     │   │
+│                 │ └─────────┘    │ └──────────────┘   │
+│                 │      │         │                    │
+│                 │      ▼         │                    │
+│                 │ ┌─────────┐    │                    │
+│                 │ │  Redis  │    │                    │
+│                 │ └─────────┘    │                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Directory Structure
 
 ```
 k8s/
-├── base/                    # Base manifests (shared)
+├── base/                    # Shared manifests
 │   ├── namespace.yaml
-│   ├── frontend/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   └── configmap.yaml
-│   ├── backend/
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── configmap.yaml
-│   │   └── secret.yaml
+│   ├── ingress.yaml
 │   ├── auth-service/
 │   │   ├── deployment.yaml
 │   │   ├── service.yaml
 │   │   ├── configmap.yaml
-│   │   └── secret.yaml
+│   │   └── kustomization.yaml
+│   ├── backend/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── configmap.yaml
+│   │   ├── secret.yaml
+│   │   └── kustomization.yaml
+│   ├── frontend/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── configmap.yaml
+│   │   └── kustomization.yaml
 │   ├── postgres-main/
 │   │   ├── statefulset.yaml
 │   │   ├── service.yaml
-│   │   └── pvc.yaml
-│   ├── postgres-auth/
-│   │   ├── statefulset.yaml
-│   │   ├── service.yaml
-│   │   └── pvc.yaml
-│   ├── redis/
-│   │   ├── deployment.yaml
-│   │   └── service.yaml
-│   └── ingress.yaml
-├── overlays/
-│   ├── local/              # k3d local development
+│   │   ├── secret.yaml
 │   │   └── kustomization.yaml
-│   └── ci/                 # kind CI testing
+│   ├── postgres-auth/
+│   │   └── ...
+│   ├── redis/
+│   │   └── ...
+│   └── kustomization.yaml
+├── overlays/
+│   ├── local/              # k3d (1 replica, local images)
+│   │   └── kustomization.yaml
+│   └── ci/                 # kind (1 replica, ci images)
 │       └── kustomization.yaml
-└── kustomization.yaml
+├── scripts/
+│   ├── local-setup.sh      # One-command local setup
+│   └── local-cleanup.sh    # Cleanup script
+└── README.md
 ```
 
-## Local Development (k3d)
+## Endpoints
+
+| Path | Service | Port | Description |
+|------|---------|------|-------------|
+| `/` | frontend | 80 | React SPA |
+| `/api/*` | backend | 8000 | Products, Cart, Orders API |
+| `/auth/*` | auth-service | 8001 | Auth API |
+| `/auth/docs` | auth-service | 8001 | Auth API Docs (Swagger) |
+
+## Cleanup
 
 ```bash
-# Create cluster
-k3d cluster create sut-dev --port 8080:80@loadbalancer
+# Quick cleanup
+./scripts/local-cleanup.sh
 
-# Deploy
-kubectl apply -k k8s/overlays/local
-
-# Check status
-kubectl get pods -n sut
-
-# Access
-# Frontend: http://localhost:8080
-# API: http://localhost:8080/api
-# Auth: http://localhost:8080/auth
-
-# Delete cluster
+# Manual cleanup
 k3d cluster delete sut-dev
-```
-
-## CI (kind)
-
-```bash
-# Create cluster
-kind create cluster --name sut-ci
-
-# Deploy
-kubectl apply -k k8s/overlays/ci
-
-# Run tests
-cd ../test-automation && npx playwright test
-
-# Delete cluster
+# or
 kind delete cluster --name sut-ci
 ```
 
-## Design Document
+## Troubleshooting
 
-See: [`docs/design/001-auth-service-extraction.md`](../../docs/design/001-auth-service-extraction.md)
+### Pods not starting
+
+```bash
+# Check pod status
+kubectl describe pod -n sut <pod-name>
+
+# Check logs
+kubectl logs -n sut <pod-name>
+```
+
+### Database connection issues
+
+```bash
+# Verify postgres is running
+kubectl get pods -n sut -l app=postgres-main
+kubectl get pods -n sut -l app=postgres-auth
+
+# Check postgres logs
+kubectl logs -n sut postgres-main-0
+```
+
+### Images not found
+
+```bash
+# Verify images are loaded
+k3d image list -c sut-dev | grep -E "(auth-service|backend|frontend)"
+```

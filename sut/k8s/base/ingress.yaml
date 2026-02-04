@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sut-ingress
+  namespace: sut
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Backend API - /api prefix (must be before /)
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+          # Auth Service - /auth prefix
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001
+          # Auth Service - /internal prefix (service-to-service)
+          - path: /internal
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001
+          # Frontend - catch-all (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

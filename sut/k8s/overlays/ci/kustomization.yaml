@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# CI overlay for kind clusters
+
+resources:
+  - ../../base
+
+# Patches for CI
+patches:
+  # Single replica in CI
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: auth-service
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: backend
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: frontend
+
+# CI image configuration (built and loaded into kind)
+images:
+  - name: auth-service
+    newName: auth-service
+    newTag: ci
+  - name: backend
+    newName: backend
+    newTag: ci
+  - name: frontend
+    newName: frontend
+    newTag: ci
