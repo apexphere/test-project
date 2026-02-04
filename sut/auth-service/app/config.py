@@ -20,9 +20,6 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7
     
-    # Fallback to HS256 with secret if no RSA keys
-    secret_key: str = "dev-secret-key-change-in-production"
-    
     class Config:
         env_file = ".env"
         extra = "ignore"
