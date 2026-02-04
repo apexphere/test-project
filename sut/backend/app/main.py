@@ -1,10 +1,22 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.db.database import init_db
 from app.api.routes import auth, products, cart, orders
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    print("Initializing database...")
+    init_db()
+    print("Database initialized!")
+    yield
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -12,6 +24,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS middleware
