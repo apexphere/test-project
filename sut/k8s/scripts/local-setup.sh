@@ -35,7 +35,10 @@ cd "$PROJECT_ROOT"
 
 docker build -t auth-service:local ./auth-service
 docker build -t backend:local ./backend  
-docker build -t frontend:local ./frontend
+docker build -t frontend:local \
+    --build-arg VITE_API_URL=http://localhost:8080/api \
+    --build-arg VITE_AUTH_URL=http://localhost:8080/auth \
+    ./frontend
 
 # Import images into k3d
 echo "📤 Importing images into k3d..."

@@ -4,7 +4,7 @@ metadata:
   name: frontend-config
   namespace: sut
 data:
-  # These URLs are accessed from the browser, so they must be the Ingress URLs
-  # Overridden in overlays for different environments
+  # VITE_* vars are build-time only. These are used by the
+  # local-setup.sh script as docker build args.
   api_url: "http://localhost:8080/api"
   auth_url: "http://localhost:8080/auth"

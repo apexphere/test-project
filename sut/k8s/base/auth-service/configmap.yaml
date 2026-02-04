@@ -4,4 +4,4 @@ metadata:
   name: auth-service-config
   namespace: sut
 data:
-  database_url: "postgresql://postgres:postgres@postgres-auth:5432/auth"
+  debug: "false"

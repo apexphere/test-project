@@ -22,8 +22,8 @@ spec:
           env:
             - name: DATABASE_URL
               valueFrom:
-                configMapKeyRef:
-                  name: auth-service-config
+                secretKeyRef:
+                  name: auth-service-secret
                   key: database_url
             - name: DEBUG
               value: "false"

@@ -22,8 +22,8 @@ spec:
           env:
             - name: DATABASE_URL
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: backend-secret
                   key: database_url
             - name: REDIS_URL
               valueFrom:

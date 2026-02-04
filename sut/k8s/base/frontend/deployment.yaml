@@ -19,17 +19,9 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5173
-          env:
-            - name: VITE_API_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: frontend-config
-                  key: api_url
-            - name: VITE_AUTH_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: frontend-config
-                  key: auth_url
+          # Note: VITE_* env vars are baked at build time.
+          # API URLs are set via docker build args (--build-arg),
+          # not via runtime env. See local-setup.sh for usage.
           readinessProbe:
             httpGet:
               path: /
