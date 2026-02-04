@@ -48,15 +48,40 @@ cd backend
 python -m venv venv
 source venv/bin/activate  # or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+
+# Optional: Configure environment
+cp .env.example .env  # Edit as needed
+
+uvicorn app.main:app --reload --port 8000
 ```
 
 **Frontend:**
 ```bash
 cd frontend
 npm install
+
+# Optional: Configure API URL (defaults to localhost:8000)
+cp .env.example .env  # Edit VITE_API_URL if backend is elsewhere
+
 npm run dev
 ```
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite:///./ecommerce.db` | Database connection string |
+| `SECRET_KEY` | (random) | JWT signing key |
+| `ALGORITHM` | `HS256` | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Token expiry time |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection (optional) |
+| `DEBUG` | `true` | Enable debug mode |
+
+### Frontend (`frontend/.env`)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VITE_API_URL` | `http://localhost:8000` | Backend API URL |
 
 ## Project Structure
 
