@@ -1,12 +1,31 @@
-"""
-Auth Service Configuration
+"""Auth Service Configuration."""
+from functools import lru_cache
+from pydantic_settings import BaseSettings
 
-Environment variables:
-- DATABASE_URL: PostgreSQL connection string
-- SECRET_KEY: JWT signing key (private)
-- PUBLIC_KEY: JWT verification key (for distribution)
-- ACCESS_TOKEN_EXPIRE_MINUTES: Token TTL (default: 60)
-- REFRESH_TOKEN_EXPIRE_DAYS: Refresh token TTL (default: 7)
-"""
 
-# Implementation will go here after design approval
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+    
+    # App
+    app_name: str = "Auth Service"
+    debug: bool = True
+    
+    # Database
+    database_url: str = "sqlite:///./auth.db"
+    
+    # JWT - RS256 keys (will be generated if not provided)
+    jwt_private_key: str = ""
+    jwt_public_key: str = ""
+    jwt_algorithm: str = "RS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7
+    
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
