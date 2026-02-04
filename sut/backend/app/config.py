@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     app_name: str = "Mini E-commerce API"
     debug: bool = False
     
-    # Database
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/ecommerce"
+    # Database (SQLite for local dev, PostgreSQL for production)
+    database_url: str = "sqlite:///./ecommerce.db"
     
     # Redis
     redis_url: str = "redis://localhost:6379"
