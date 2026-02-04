@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # Main PostgreSQL Database (products, orders, cart)
   db:
     image: postgres:15-alpine
     environment:
@@ -18,7 +18,24 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis
+  # Auth PostgreSQL Database (users, tokens)
+  db-auth:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis (shared)
   redis:
     image: redis:7-alpine
     ports:
@@ -29,6 +46,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db-auth:5432/auth
+      DEBUG: "true"
+    depends_on:
+      db-auth:
+        condition: service_healthy
+    volumes:
+      - ./auth-service:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+
   # Backend API
   backend:
     build: ./backend
@@ -38,12 +70,15 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/ecommerce
       REDIS_URL: redis://redis:6379
       SECRET_KEY: dev-secret-key-change-in-production
+      AUTH_SERVICE_URL: http://auth-service:8001
       DEBUG: "true"
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      auth-service:
+        condition: service_started
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -55,8 +90,10 @@ services:
       - "5173:5173"
     environment:
       VITE_API_URL: http://localhost:8000
+      VITE_AUTH_URL: http://localhost:8001
     depends_on:
       - backend
+      - auth-service
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -64,3 +101,4 @@ services:
 
 volumes:
   postgres_data:
+  postgres_auth_data:

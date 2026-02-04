@@ -1,11 +1,15 @@
-"""
-Security Utilities
+"""Security utilities for Auth Service."""
+from passlib.context import CryptContext
 
-Functions:
-- hash_password(password) - Hash password with bcrypt
-- verify_password(plain, hashed) - Verify password against hash
+# Password hashing context using bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-Uses bcrypt with cost factor 12 for password hashing.
-"""
 
-# Implementation will go here after design approval
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
+    return pwd_context.verify(plain_password, hashed_password)

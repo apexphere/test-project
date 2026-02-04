@@ -1,12 +1,32 @@
-"""
-Database Setup
+"""Database configuration for Auth Service."""
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from typing import Generator
 
-Provides:
-- engine: SQLAlchemy engine
-- SessionLocal: Session factory
-- Base: Declarative base for models
-- init_db(): Create all tables
-- get_db(): Dependency for request sessions
-"""
+from app.config import get_settings
 
-# Implementation will go here after design approval
+settings = get_settings()
+
+# SQLite needs special connect_args
+connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+
+engine = create_engine(settings.database_url, connect_args=connect_args)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+
+def init_db() -> None:
+    """Create all database tables."""
+    from app.models import user, token  # noqa: F401
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db() -> Generator:
+    """Dependency for database sessions."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
