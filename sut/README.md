@@ -72,8 +72,11 @@ npm run dev
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | `sqlite:///./ecommerce.db` | Database connection string |
-| `SECRET_KEY` | (generated) | JWT signing key |
+| `SECRET_KEY` | (random) | JWT signing key |
+| `ALGORITHM` | `HS256` | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Token expiry time |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection (optional) |
+| `DEBUG` | `true` | Enable debug mode |
 
 ### Frontend (`frontend/.env`)
 | Variable | Default | Description |
