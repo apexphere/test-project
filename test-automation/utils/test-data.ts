@@ -1,39 +1,45 @@
-import { SignupData } from '../pages';
+import type { RegisterData } from '../pages';
 
 /**
- * Generate unique email to avoid "Email already exists" errors
+ * Test users seeded in the database
  */
-export function generateUniqueEmail(prefix: string = 'testuser'): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(7);
-  return `${prefix}_${timestamp}_${random}@test.com`;
-}
+export const TEST_USERS = {
+  admin: {
+    email: 'admin@example.com',
+    password: 'admin123',
+    fullName: 'Admin User',
+  },
+  user: {
+    email: 'user@example.com',
+    password: 'user123',
+    fullName: 'Test User',
+  },
+} as const;
 
 /**
- * Generate complete signup data with defaults
+ * Generate unique registration data for a new user
  */
-export function generateSignupData(overrides: Partial<SignupData> = {}): SignupData {
+export function generateUniqueUser(): RegisterData {
   const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  
   return {
-    name: `Test User ${timestamp}`,
-    email: generateUniqueEmail(),
-    password: 'Test@1234',
-    title: 'Mr',
-    birthDay: '15',
-    birthMonth: '6',
-    birthYear: '1990',
-    firstName: 'Test',
-    lastName: 'User',
-    company: 'Test Company',
-    address: '123 Test Street',
-    address2: 'Apt 456',
-    country: 'United States',
-    state: 'California',
-    city: 'Los Angeles',
-    zipcode: '90001',
-    mobileNumber: '1234567890',
-    newsletter: true,
-    specialOffers: true,
-    ...overrides,
+    fullName: `Test User ${random}`,
+    email: `test.${timestamp}.${random}@example.com`,
+    password: 'TestPass123!',
   };
 }
+
+/**
+ * Invalid test data for negative testing
+ */
+export const INVALID_DATA = {
+  emptyEmail: '',
+  invalidEmail: 'not-an-email',
+  emptyPassword: '',
+  shortPassword: '123',
+  nonExistentUser: {
+    email: 'doesnotexist@example.com',
+    password: 'wrongpassword',
+  },
+} as const;

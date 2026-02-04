@@ -2,55 +2,66 @@ import { Page, Locator } from '@playwright/test';
 
 export abstract class BasePage {
   readonly page: Page;
+  
+  // Common navbar elements
+  readonly navBrand: Locator;
+  readonly navProducts: Locator;
+  readonly navCart: Locator;
+  readonly navOrders: Locator;
+  readonly navLogin: Locator;
+  readonly navRegister: Locator;
+  readonly navLogout: Locator;
+  readonly userName: Locator;
 
   constructor(page: Page) {
     this.page = page;
+    
+    // Navbar locators
+    this.navBrand = page.locator('.navbar-brand a');
+    this.navProducts = page.locator('.navbar-links a[href="/products"]');
+    this.navCart = page.locator('.navbar-links a[href="/cart"]');
+    this.navOrders = page.locator('.navbar-links a[href="/orders"]');
+    this.navLogin = page.locator('.navbar-links a[href="/login"]');
+    this.navRegister = page.locator('.navbar-links a[href="/register"]');
+    this.navLogout = page.locator('.btn-logout');
+    this.userName = page.locator('.user-name');
   }
 
-  // Common navigation elements
-  get homeLink(): Locator {
-    return this.page.locator('a[href="/"]').first();
+  abstract readonly path: string;
+
+  async open(): Promise<void> {
+    await this.page.goto(this.path);
   }
 
-  get productsLink(): Locator {
-    return this.page.locator('a[href="/products"]');
+  async goToProducts(): Promise<void> {
+    await this.navProducts.click();
   }
 
-  get cartLink(): Locator {
-    return this.page.locator('a[href="/view_cart"]');
+  async goToCart(): Promise<void> {
+    await this.navCart.click();
   }
 
-  get signupLoginLink(): Locator {
-    return this.page.locator('a[href="/login"]');
+  async goToLogin(): Promise<void> {
+    await this.navLogin.click();
   }
 
-  get contactUsLink(): Locator {
-    return this.page.locator('a[href="/contact_us"]');
+  async goToRegister(): Promise<void> {
+    await this.navRegister.click();
   }
 
-  get logoutLink(): Locator {
-    return this.page.locator('a[href="/logout"]');
-  }
-
-  get deleteAccountLink(): Locator {
-    return this.page.locator('a[href="/delete_account"]');
-  }
-
-  // Common actions
-  async navigate(path: string = '/'): Promise<void> {
-    await this.page.goto(path);
-  }
-
-  async getLoggedInUser(): Promise<string | null> {
-    const loggedInAs = this.page.locator('a:has-text("Logged in as")');
-    if (await loggedInAs.isVisible()) {
-      const text = await loggedInAs.textContent();
-      return text?.replace('Logged in as ', '') || null;
-    }
-    return null;
+  async logout(): Promise<void> {
+    await this.navLogout.click();
   }
 
   async isLoggedIn(): Promise<boolean> {
-    return (await this.getLoggedInUser()) !== null;
+    return this.navLogout.isVisible();
+  }
+
+  async getLoggedInUserName(): Promise<string | null> {
+    if (await this.isLoggedIn()) {
+      const text = await this.userName.textContent();
+      return text?.replace('Hi, ', '') || null;
+    }
+    return null;
   }
 }

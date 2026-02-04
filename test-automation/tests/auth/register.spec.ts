@@ -1,71 +1,82 @@
 import { test, expect } from '@playwright/test';
-import { HomePage, AuthPage } from '../../pages';
-import { generateSignupData } from '../../utils/test-data';
+import { RegisterPage, LoginPage } from '../../pages';
+import { TEST_USERS, generateUniqueUser } from '../../utils/test-data';
 
-test.describe('User Registration', () => {
-  let homePage: HomePage;
-  let authPage: AuthPage;
+test.describe('Registration', () => {
+  let registerPage: RegisterPage;
 
   test.beforeEach(async ({ page }) => {
-    homePage = new HomePage(page);
-    authPage = new AuthPage(page);
+    registerPage = new RegisterPage(page);
+    await registerPage.open();
   });
 
-  test('TC01: Register new user successfully', async ({ page }) => {
-    const userData = generateSignupData();
-
-    // 1-3. Navigate to home page and verify it's visible
-    await homePage.open();
-    await homePage.verifyHomePageVisible();
-
-    // 4. Click on 'Signup / Login' button
-    await homePage.goToSignupLogin();
-
-    // 5. Verify 'New User Signup!' is visible
-    await authPage.verifySignupFormVisible();
-
-    // 6-7. Enter name and email, click Signup
-    await authPage.initiateSignup(userData.name, userData.email);
-
-    // 8. Verify 'ENTER ACCOUNT INFORMATION' is visible
-    await expect(authPage.accountInfoHeader).toBeVisible();
-
-    // 9-12. Fill account details
-    await authPage.fillAccountInformation(userData);
-
-    // 13. Click 'Create Account' button
-    await authPage.submitAccountCreation();
-
-    // 14. Verify 'ACCOUNT CREATED!' is visible
-    await authPage.verifyAccountCreated();
-
-    // 15. Click 'Continue' button
-    await authPage.continueButton.click();
-
-    // 16. Verify 'Logged in as username' is visible
-    const loggedInUser = await authPage.getLoggedInUser();
-    expect(loggedInUser).toBeTruthy();
-
-    // 17. Click 'Delete Account' button
-    await authPage.deleteAccountLink.click();
-
-    // 18. Verify 'ACCOUNT DELETED!' is visible
-    await authPage.verifyAccountDeleted();
+  test('should display registration page correctly', async () => {
+    await registerPage.expectPageVisible();
   });
 
-  test('TC05: Register with existing email shows error', async ({ page }) => {
-    // This test uses a known existing email
-    const existingEmail = 'existing@test.com';
+  test('should register new user successfully', async ({ page }) => {
+    const newUser = generateUniqueUser();
+    
+    await registerPage.register(newUser);
+    await registerPage.expectRegisterSuccess();
+    
+    // Verify we can login with the new account
+    const loginPage = new LoginPage(page);
+    await loginPage.login(newUser.email, newUser.password);
+    await loginPage.expectLoginSuccess();
+  });
 
-    await homePage.open();
-    await homePage.goToSignupLogin();
-    await authPage.verifySignupFormVisible();
+  test('should show error for existing email', async () => {
+    const existingUser = TEST_USERS.user;
+    
+    await registerPage.register({
+      fullName: 'Another User',
+      email: existingUser.email,
+      password: 'SomePassword123',
+    });
+    
+    await registerPage.expectRegisterError();
+  });
 
-    // Try to signup with existing email
-    await authPage.initiateSignup('Test User', existingEmail);
+  test('should show error for invalid email format', async () => {
+    await registerPage.emailInput.fill('not-an-email');
+    await registerPage.passwordInput.fill('ValidPass123');
+    await registerPage.submitButton.click();
+    
+    // HTML5 validation should prevent submission
+    const emailInput = registerPage.emailInput;
+    const validationMessage = await emailInput.evaluate(
+      (el: HTMLInputElement) => el.validationMessage
+    );
+    expect(validationMessage).toBeTruthy();
+  });
 
-    // Verify error message
-    // Note: This might need adjustment based on actual site behavior
-    // If no existing user, this test will need a pre-registered account
+  test('should show error for short password', async () => {
+    await registerPage.emailInput.fill('test@example.com');
+    await registerPage.passwordInput.fill('12345'); // Less than 6 chars
+    await registerPage.submitButton.click();
+    
+    // HTML5 minLength validation should prevent submission
+    const passwordInput = registerPage.passwordInput;
+    const validationMessage = await passwordInput.evaluate(
+      (el: HTMLInputElement) => el.validationMessage
+    );
+    expect(validationMessage).toBeTruthy();
+  });
+
+  test('should navigate to login page', async () => {
+    await registerPage.loginLink.click();
+    await expect(registerPage.page).toHaveURL('/login');
+  });
+
+  test('should allow registration without full name', async ({ page }) => {
+    const timestamp = Date.now();
+    const userWithoutName = {
+      email: `noname.${timestamp}@example.com`,
+      password: 'ValidPass123',
+    };
+    
+    await registerPage.register(userWithoutName);
+    await registerPage.expectRegisterSuccess();
   });
 });
