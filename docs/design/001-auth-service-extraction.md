@@ -4,8 +4,9 @@
 |-------|-------|
 | **Author** | Megan (AI) |
 | **Created** | 2026-02-04 |
-| **Status** | Draft |
-| **Reviewers** | Master |
+| **Status** | ✅ Approved |
+| **Approved By** | Master |
+| **Approved Date** | 2026-02-04 |
 
 ---
 
@@ -482,21 +483,31 @@ k8s/
 
 ---
 
-## 10. Open Questions
+## 10. Decisions (Approved)
 
 1. **Single or separate databases?**
-   - Recommendation: Separate (auth has its own DB)
-   - Simpler to manage, clearer boundaries
+   - ✅ **Decision: Separate** (auth has its own DB)
+   - Simpler to manage, cleaner boundaries
    
-2. **How to handle user deletion?**
+2. **JWT signing algorithm?**
+   - ✅ **Decision: RS256** (asymmetric)
+   - Private key in Auth Service only
+   - Public key distributed to Backend
+
+3. **Token validation approach?**
+   - ✅ **Decision: Local validation**
+   - Backend has public key, no network call needed
+   - Fast, resilient to Auth Service downtime
+
+4. **How to handle user deletion?**
    - Soft delete in Auth Service
    - Backend keeps user_id references (orders history)
 
-3. **Admin management?**
+5. **Admin management?**
    - Keep in Auth Service
    - Backend checks `is_admin` claim in JWT
 
-4. **Rate limiting?**
+6. **Rate limiting?**
    - Phase 2: Add to Auth Service
    - Use Redis for distributed rate limiting
 
