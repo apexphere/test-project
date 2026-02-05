@@ -4,17 +4,27 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.database import init_db
-from app.api.routes import auth, products, cart, orders
+from app.api.routes import products, cart, orders
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database on startup and fetch auth public key."""
     print("Initializing database...")
     init_db()
     print("Database initialized!")
+
+    # Pre-fetch the JWT public key from the auth service so that the
+    # first authenticated request doesn't pay the latency cost.
+    try:
+        from app.core.security import get_public_key
+        get_public_key()
+    except Exception as e:
+        print(f"Warning: could not fetch JWT public key on startup: {e}")
+        print("Will retry on first authenticated request.")
+
     yield
 
 
@@ -53,8 +63,7 @@ async def health():
     }
 
 
-# Include routers
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+# Include routers — auth is now handled by auth-service
 app.include_router(products.router, prefix="/api/products", tags=["Products"])
 app.include_router(cart.router, prefix="/api/cart", tags=["Cart"])
 app.include_router(orders.router, prefix="/api/orders", tags=["Orders"])
