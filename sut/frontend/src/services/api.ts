@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 import type { 
   User, 
   LoginCredentials, 
@@ -33,7 +34,7 @@ const authClient = axios.create({
 });
 
 // Add auth token to both clients
-const addAuthToken = (config: any) => {
+const addAuthToken = (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

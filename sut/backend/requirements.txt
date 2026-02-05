@@ -16,7 +16,8 @@ python-jose[cryptography]>=3.3.0
 cryptography>=41.0.0
 httpx>=0.26.0
 
-# Legacy — kept for seed script compatibility
+# Legacy — no longer used (auth delegated to auth-service) but kept
+# to avoid breaking existing environments / migrations
 passlib[bcrypt]>=1.7.4
 bcrypt>=4.0.0,<5.0.0  # Pin to 4.x for passlib compatibility
 
