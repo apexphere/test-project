@@ -12,7 +12,11 @@ import type {
   OrderListResponse 
 } from '../types';
 
+// Backend API — products, cart, orders
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+// Auth service — login, register, me
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8001';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -21,35 +25,45 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
+const authClient = axios.create({
+  baseURL: AUTH_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to both clients
+const addAuthToken = (config: any) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+};
 
-// Auth API
+api.interceptors.request.use(addAuthToken);
+authClient.interceptors.request.use(addAuthToken);
+
+// Auth API — talks to auth-service
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthToken> => {
     const formData = new URLSearchParams();
     formData.append('username', credentials.email);
     formData.append('password', credentials.password);
     
-    const { data } = await api.post<AuthToken>('/auth/login', formData, {
+    const { data } = await authClient.post<AuthToken>('/auth/login', formData, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     return data;
   },
 
   register: async (userData: RegisterData): Promise<User> => {
-    const { data } = await api.post<User>('/auth/register', userData);
+    const { data } = await authClient.post<User>('/auth/register', userData);
     return data;
   },
 
   getMe: async (): Promise<User> => {
-    const { data } = await api.get<User>('/auth/me');
+    const { data } = await authClient.get<User>('/auth/me');
     return data;
   },
 };
