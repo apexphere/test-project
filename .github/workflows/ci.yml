@@ -37,12 +37,7 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run unit tests
-        run: |
-          if [ -d "tests/unit" ]; then
-            pytest tests/unit -v --tb=short
-          else
-            echo "No unit tests yet - skipping"
-          fi
+        run: pytest tests/unit -v --tb=short
 
   unit-frontend:
     name: Unit Tests (Frontend)
@@ -64,12 +59,7 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: |
-          if npm run test:unit --if-present; then
-            echo "Unit tests passed"
-          else
-            echo "No unit tests configured yet - skipping"
-          fi
+        run: npm run test:unit
 
   # ============================================
   # INTEGRATION TESTS - Run on PR + main/develop
@@ -95,9 +85,6 @@ jobs:
           echo "Waiting for backend..."
           timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null 2>&1 || curl -s http://localhost:8000/api/products > /dev/null 2>&1; do sleep 2; done'
           echo "Backend ready!"
-          
-          echo "Waiting for auth service..."
-          timeout 60 bash -c 'until curl -s http://localhost:8001/health > /dev/null 2>&1; do sleep 2; done' || echo "Auth service not available or no health endpoint"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -109,11 +96,7 @@ jobs:
           cd sut/backend
           pip install -r requirements.txt
           pip install pytest
-          if [ -d "tests/integration" ]; then
-            pytest tests/integration -v --tb=short
-          else
-            echo "No integration tests yet - skipping"
-          fi
+          pytest tests/integration -v --tb=short
 
       - name: Stop services
         if: always()
@@ -169,18 +152,12 @@ jobs:
 
       - name: Seed test data
         run: |
-          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed || true
+          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed
 
       - name: Run smoke tests
         run: |
           cd test-automation
-          # Run smoke-tagged tests, or if no tags yet, run a subset
-          if npx playwright test --grep @smoke --reporter=github,html 2>/dev/null; then
-            echo "Smoke tests passed"
-          else
-            echo "No @smoke tags found - running first 8 tests as smoke"
-            npx playwright test --reporter=github,html tests/auth/login.spec.ts tests/products/products.spec.ts
-          fi
+          npx playwright test --grep @smoke --reporter=github,html
         env:
           BASE_URL: http://localhost:5173
 
@@ -248,7 +225,7 @@ jobs:
 
       - name: Seed test data
         run: |
-          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed || true
+          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed
 
       - name: Run full E2E tests
         run: |
