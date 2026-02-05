@@ -1,14 +1,14 @@
 {
   "name": "test-automation",
   "version": "1.0.0",
-  "description": "Playwright test automation for automationexercise.com",
+  "description": "Playwright E2E test automation for the e-commerce SUT",
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
     "report": "playwright show-report",
-    "codegen": "playwright codegen https://automationexercise.com"
+    "codegen": "playwright codegen http://localhost:5173"
   },
   "keywords": ["playwright", "testing", "automation"],
   "author": "",
