@@ -6,13 +6,19 @@ from app.db.database import Base
 
 
 class User(Base):
-    """User model for authentication and orders."""
+    """User model for authentication and orders.
+    
+    The backend maintains its own user records, linked to the external
+    auth service via `auth_service_id`. The backend's `id` (auto-increment)
+    is used for all internal foreign key relationships.
+    """
     
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
+    auth_service_id = Column(Integer, unique=True, index=True, nullable=True)  # ID from auth service
     email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True, default="")
     full_name = Column(String(255))
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)

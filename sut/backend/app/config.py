@@ -15,9 +15,12 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
     
-    # JWT Auth
+    # Auth Service
+    auth_service_url: str = "http://localhost:8001"
+    jwt_public_key: str = ""  # Falls back to fetching from auth service
+    
+    # Legacy — kept for reference but no longer used for JWT
     secret_key: str = "your-super-secret-key-change-in-production"
-    algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
     class Config:
