@@ -1,9 +1,12 @@
-"""Seed the database with sample data."""
+"""Seed the database with sample data.
+
+NOTE: Users are now managed by the auth-service. The backend only seeds
+product/category data. User records are created automatically via
+find-or-create when an authenticated user first interacts with the backend.
+"""
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, init_db
-from app.models.user import User
 from app.models.product import Product, Category
-from app.core.security import get_password_hash
 
 
 def seed_database():
@@ -11,27 +14,10 @@ def seed_database():
     db = SessionLocal()
     
     try:
-        # Check if already seeded
-        if db.query(User).first():
+        # Check if already seeded (use categories as indicator)
+        if db.query(Category).first():
             print("Database already seeded.")
             return
-        
-        # Create admin user
-        admin = User(
-            email="admin@example.com",
-            hashed_password=get_password_hash("admin123"),
-            full_name="Admin User",
-            is_admin=True
-        )
-        db.add(admin)
-        
-        # Create test user
-        user = User(
-            email="user@example.com",
-            hashed_password=get_password_hash("user123"),
-            full_name="Test User"
-        )
-        db.add(user)
         
         # Create categories
         categories = [
@@ -75,10 +61,10 @@ def seed_database():
         
         db.commit()
         print("Database seeded successfully!")
-        print(f"- Admin user: admin@example.com / admin123")
-        print(f"- Test user: user@example.com / user123")
         print(f"- {len(categories)} categories created")
         print(f"- {len(products)} products created")
+        print("Note: Users are now managed by auth-service.")
+        print("Register via auth-service at /auth/register")
         
     except Exception as e:
         print(f"Error seeding database: {e}")
