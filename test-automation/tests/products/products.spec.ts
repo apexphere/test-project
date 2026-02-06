@@ -9,11 +9,11 @@ test.describe('Products', () => {
     await productsPage.open();
   });
 
-  test('should display products page correctly', async () => {
+  test('should display products page correctly @smoke', async () => {
     await productsPage.expectPageVisible();
   });
 
-  test('should display products from database', async () => {
+  test('should display products from database @smoke', async () => {
     await productsPage.expectProductsDisplayed();
     
     // We seeded 14 products, should see at least some
@@ -21,7 +21,7 @@ test.describe('Products', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('should search products by name', async () => {
+  test('should search products by name @smoke', async () => {
     // Get initial count
     const initialCount = await productsPage.getProductCount();
     
