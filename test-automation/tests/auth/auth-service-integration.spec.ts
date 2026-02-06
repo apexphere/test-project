@@ -22,7 +22,7 @@ test.describe('Auth Service Integration', () => {
     expect(body.status).toBe('healthy');
   });
 
-  test('register → login → access protected page → logout', async ({ page }) => {
+  test('register → login → access protected page → logout @smoke', async ({ page }) => {
     // Complete auth lifecycle through the new Auth Service
 
     // 1. Register a fresh user via UI

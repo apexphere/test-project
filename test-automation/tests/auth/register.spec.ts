@@ -14,7 +14,7 @@ test.describe('Registration', () => {
     await registerPage.expectPageVisible();
   });
 
-  test('should register new user successfully', async ({ page }) => {
+  test('should register new user successfully @smoke', async ({ page }) => {
     const newUser = generateUniqueUser();
     
     await registerPage.register(newUser);
