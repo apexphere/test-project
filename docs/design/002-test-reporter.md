@@ -4,8 +4,9 @@
 |-------|-------|
 | **Author** | BA/Architect (AI) |
 | **Created** | 2026-02-06 |
-| **Status** | 📝 Draft |
-| **Pending Approval** | Master |
+| **Status** | ✅ Approved |
+| **Approved By** | Master |
+| **Approved Date** | 2026-02-07 |
 
 ---
 
@@ -163,10 +164,11 @@ reporter: [
 | Language | TypeScript | Project standard, type safety |
 | Runtime | Node.js 20 | LTS, matches test-automation |
 | Framework | Express.js | Simple, well-known, sufficient |
-| Database | SQLite → PostgreSQL | Start simple, scale when needed |
-| ORM | Drizzle ORM | Type-safe, lightweight, good SQLite support |
-| Dashboard | Embedded HTML/CSS/JS | No build step, ships with service |
+| Database | PostgreSQL | Handles concurrency, standard cloud deployment |
+| ORM | Drizzle ORM | Type-safe, lightweight, good Postgres support |
+| Dashboard | React 18 + Vite + Tailwind | Minimalist SPA, fast dev, utility-first CSS |
 | Package Manager | pnpm | Project standard |
+| Container | Docker + docker-compose | Local dev + portable deployment |
 
 ### 4.2 API Specification
 
@@ -285,41 +287,41 @@ GET /api/insights/overview:
 ```sql
 -- Test Runs (one per Playwright execution)
 CREATE TABLE runs (
-    id TEXT PRIMARY KEY,                    -- UUID
-    source TEXT NOT NULL,                   -- "ci" | "local"
-    branch TEXT,
-    commit_sha TEXT,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source VARCHAR(20) NOT NULL,            -- "ci" | "local"
+    branch VARCHAR(255),
+    commit_sha VARCHAR(40),
     pr_number INTEGER,
-    started_at DATETIME NOT NULL,
-    completed_at DATETIME NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP NOT NULL,
     total_tests INTEGER NOT NULL,
     passed INTEGER NOT NULL,
     failed INTEGER NOT NULL,
     skipped INTEGER NOT NULL,
     duration_ms INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Individual Test Results
 CREATE TABLE test_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-    test_id TEXT NOT NULL,                  -- Stable identifier: "file:title"
-    title TEXT NOT NULL,
-    file TEXT NOT NULL,
-    status TEXT NOT NULL,                   -- passed|failed|skipped|timedOut
+    id SERIAL PRIMARY KEY,
+    run_id UUID NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    test_id VARCHAR(500) NOT NULL,          -- Stable identifier: "file:title"
+    title VARCHAR(500) NOT NULL,
+    file VARCHAR(500) NOT NULL,
+    status VARCHAR(20) NOT NULL,            -- passed|failed|skipped|timedOut
     duration_ms INTEGER NOT NULL,
     retries INTEGER DEFAULT 0,
     error_message TEXT,
     error_stack TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Aggregated Test Stats (materialized for performance)
 CREATE TABLE test_stats (
-    test_id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    file TEXT NOT NULL,
+    test_id VARCHAR(500) PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    file VARCHAR(500) NOT NULL,
     total_runs INTEGER DEFAULT 0,
     total_passed INTEGER DEFAULT 0,
     total_failed INTEGER DEFAULT 0,
@@ -328,9 +330,9 @@ CREATE TABLE test_stats (
     min_duration_ms INTEGER,
     max_duration_ms INTEGER,
     flakiness_score REAL DEFAULT 0,         -- 0.0 (stable) to 1.0 (very flaky)
-    last_run_at DATETIME,
-    last_status TEXT,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    last_run_at TIMESTAMP,
+    last_status VARCHAR(20),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes
@@ -378,7 +380,7 @@ function calculateFlakiness(results: ('passed' | 'failed')[]): number {
 
 ### 4.5 Dashboard UI
 
-Simple, embedded dashboard (no React build step needed):
+Minimalist React SPA with only essential components:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -486,42 +488,23 @@ reporter: [
 
 ### 5.2 CI/CD Integration
 
-**Option A: Reporter + Service in CI (Recommended for now)**
+CI posts results to the hosted test-reporter service:
 
 ```yaml
 # .github/workflows/ci.yml additions
-
-- name: Start test-reporter
-  run: |
-    cd test-reporter
-    npm ci
-    npm run start &
-    sleep 5  # Wait for service to start
-  env:
-    PORT: 3000
-    DATABASE_PATH: ./test-reporter.db
 
 - name: Run Playwright tests
   run: |
     cd test-automation
     npx playwright test
   env:
-    TEST_REPORTER_URL: http://localhost:3000
-
-- name: Upload test-reporter database
-  uses: actions/upload-artifact@v4
-  if: always()
-  with:
-    name: test-reporter-db
-    path: test-reporter/test-reporter.db
+    TEST_REPORTER_URL: ${{ secrets.TEST_REPORTER_URL }}
 ```
 
-**Option B: Hosted Service (Future)**
-
-When we have persistent infrastructure:
-- Deploy test-reporter as a service (k8s or cloud)
-- CI pushes results to the hosted service
-- Data persists across all runs
+**Requirements:**
+- test-reporter must be deployed and accessible (K8s, VPS, cloud platform)
+- `TEST_REPORTER_URL` secret configured in GitHub repo settings
+- Custom reporter handles auth if needed (future enhancement)
 
 ### 5.3 Future test-agent Integration
 
@@ -548,35 +531,52 @@ const suggestions = generateFixSuggestions(errorPatterns);
 
 ## 6. Deployment Design
 
-### 6.1 Phase 1: Local/CI (SQLite)
+### 6.1 Local Development (docker-compose)
 
-```
-test-project/
-├── test-reporter/
-│   ├── src/
-│   │   ├── index.ts           # Express app entry
-│   │   ├── routes/
-│   │   │   ├── runs.ts
-│   │   │   ├── tests.ts
-│   │   │   └── insights.ts
-│   │   ├── db/
-│   │   │   ├── schema.ts      # Drizzle schema
-│   │   │   └── migrations/
-│   │   ├── services/
-│   │   │   ├── ingestion.ts
-│   │   │   └── analysis.ts
-│   │   └── dashboard/
-│   │       └── index.html     # Static dashboard
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── test-reporter.db       # SQLite (gitignored)
-└── test-automation/
-    ├── reporters/
-    │   └── test-reporter.ts   # Custom reporter
-    └── playwright.config.ts
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reporter
+      POSTGRES_PASSWORD: reporter
+      POSTGRES_DB: test_reporter
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://reporter:reporter@postgres:5432/test_reporter
+    depends_on:
+      - postgres
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dashboard-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./dashboard:/app
+    environment:
+      VITE_API_URL: http://localhost:3000
+
+volumes:
+  postgres_data:
 ```
 
-### 6.2 Phase 2: Kubernetes (PostgreSQL)
+### 6.2 Production (Kubernetes)
 
 ```yaml
 # k8s/base/test-reporter/deployment.yaml
@@ -603,23 +603,25 @@ spec:
 
 ### 6.3 Resource Requirements
 
-| Phase | Database | Memory | CPU | Storage |
-|-------|----------|--------|-----|---------|
-| 1 (Local/CI) | SQLite | 128Mi | 0.1 | 100MB |
-| 2 (K8s) | PostgreSQL | 256Mi | 0.2 | 1GB |
+| Environment | Database | Memory | CPU | Storage |
+|-------------|----------|--------|-----|---------|
+| Local (compose) | Postgres container | 256Mi | 0.2 | 1GB |
+| Production (K8s) | Managed Postgres | 256Mi | 0.2 | 10GB |
 
 ---
 
 ## 7. Implementation Plan
 
-### Phase 1: Core Service (Est: 4-6 hours)
+### Phase 1: Core Service + Docker (Est: 5-7 hours)
 
-1. Initialize `test-reporter/` with TypeScript + Express
-2. Set up Drizzle ORM with SQLite
-3. Implement data model (runs, test_results, test_stats)
-4. Implement POST /api/runs endpoint
-5. Implement GET /api/runs, /api/tests endpoints
-6. Add basic tests
+1. Initialize `test-reporter/server/` with TypeScript + Express
+2. Set up docker-compose with Postgres
+3. Set up Drizzle ORM with PostgreSQL
+4. Implement data model (runs, test_results, test_stats)
+5. Implement POST /api/runs endpoint
+6. Implement GET /api/runs, /api/tests endpoints
+7. Add Dockerfile for server
+8. Add basic tests
 
 ### Phase 2: Playwright Integration (Est: 2-3 hours)
 
@@ -628,35 +630,36 @@ spec:
 3. Test locally with manual runs
 4. Verify data flows correctly
 
-### Phase 3: Analysis & Insights (Est: 3-4 hours)
+### Phase 3: Query API & Insights (Est: 3-4 hours)
 
 1. Implement flakiness calculation
 2. Implement duration trend tracking
 3. Add /api/insights/* endpoints
 4. Add test_stats materialization trigger
 
-### Phase 4: Dashboard UI (Est: 3-4 hours)
+### Phase 4: Dashboard UI (Est: 5-7 hours)
 
-1. Create static HTML dashboard
-2. Add CSS styling (keep it simple)
-3. Add JavaScript for fetching data
-4. Add basic charts (pass rate over time)
+1. Initialize `test-reporter/dashboard/` with Vite + React + Tailwind
+2. Build base components (Card, Table, Badge, Chart)
+3. Build Dashboard page (overview, recent runs, flaky/slow tests)
+4. Build Run Detail page
+5. Build Test Detail page
+6. Add to docker-compose for dev
 
 ### Phase 5: CI Integration (Est: 2-3 hours)
 
 1. Update GitHub Actions workflow
-2. Add test-reporter startup
-3. Configure artifact upload for DB
-4. Test end-to-end in CI
+2. Configure reporter to POST to hosted service
+3. Test end-to-end in CI
 
 ### Phase 6: Documentation & Polish (Est: 1-2 hours)
 
 1. Write README for test-reporter
 2. Document API endpoints
 3. Add usage examples
-4. Update project README
+4. Add deployment guide
 
-**Total Estimate: 15-22 hours**
+**Total Estimate: 18-26 hours**
 
 ---
 
@@ -694,55 +697,52 @@ spec:
 
 ---
 
-## 10. Decisions (Pending Approval)
+## 10. Decisions (Approved)
 
 ### 10.1 Database Choice
 
 **Question:** SQLite (simple) or PostgreSQL (scalable) from the start?
 
-**Recommendation:** SQLite for Phase 1
+**Decision:** ✅ **PostgreSQL from the start**
 
-- Rationale: No infrastructure needed, file-based, easy to start
-- Migration path: Drizzle ORM supports both; schema stays the same
-- Trade-off: Loses data between CI runs (mitigated by artifact upload)
-
-**Decision:** 🔲 Pending
+- Rationale: Service is containerized anyway; Postgres container is trivial to add
+- Local dev: Postgres in docker-compose
+- Production: Managed Postgres (Supabase, Neon, RDS, etc.)
+- Benefits: Handles concurrent writes, standard cloud deployment path
 
 ### 10.2 Dashboard Approach
 
 **Question:** Static HTML, React SPA, or API-only?
 
-**Recommendation:** Static HTML dashboard
+**Decision:** ✅ **React SPA (minimalist)**
 
-- Rationale: No build step, ships with service, minimal complexity
-- Trade-off: Less interactive than React
-- Future: Can add React dashboard later if needed
+- Stack: React 18 + Vite + Tailwind CSS
+- Approach: Minimalist design, only necessary reusable components
+- Initial components: Card, Table, Badge, Chart (simple line chart)
+- Initial pages: Dashboard, Run Detail, Test Detail
+- Rationale: Proper framework scales better than static HTML; Vite keeps it fast
 
-**Decision:** 🔲 Pending
-
-### 10.3 Where Does test-reporter Run?
+### 10.3 Deployment Model
 
 **Question:** CI-only, standalone service, or both?
 
-**Recommendation:** CI-only first, standalone service later
+**Decision:** ✅ **Containerized service from day one**
 
-- Phase 1: Runs in CI, stores to SQLite, uploads as artifact
-- Phase 2: Hosted service in K8s, permanent storage
-- Rationale: Get value quickly without infrastructure overhead
-
-**Decision:** 🔲 Pending
+- Docker image for the service
+- docker-compose for local dev (app + Postgres)
+- Deploy anywhere: K8s, Fly.io, Railway, VPS
+- CI posts results to hosted service (no ephemeral DB issues)
+- Rationale: CI-only with SQLite can't maintain historical data across runs
 
 ### 10.4 Retention Policy
 
 **Question:** How long to keep test data?
 
-**Recommendation:** 90 days initially
+**Decision:** ✅ **90 days initially**
 
 - Recent data is most valuable
 - Storage is cheap but not free
 - Can extend later if needed
-
-**Decision:** 🔲 Pending
 
 ---
 
@@ -831,41 +831,60 @@ curl http://localhost:3000/api/tests/auth%2Flogin.spec.ts%3Ashould%20login%20suc
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP server port | 3000 |
-| `DATABASE_PATH` | SQLite file path | ./test-reporter.db |
-| `DATABASE_URL` | PostgreSQL URL (Phase 2) | - |
+| `DATABASE_URL` | PostgreSQL connection URL | (required) |
 | `LOG_LEVEL` | Logging level | info |
 | `RETENTION_DAYS` | Data retention period | 90 |
+| `VITE_API_URL` | API URL for dashboard (build time) | http://localhost:3000 |
 
 ### D. Directory Structure
 
 ```
 test-reporter/
-├── src/
-│   ├── index.ts              # App entry point
-│   ├── config.ts             # Environment config
-│   ├── routes/
-│   │   ├── index.ts          # Route aggregator
-│   │   ├── runs.ts           # /api/runs endpoints
-│   │   ├── tests.ts          # /api/tests endpoints
-│   │   └── insights.ts       # /api/insights endpoints
-│   ├── db/
-│   │   ├── index.ts          # Database connection
-│   │   ├── schema.ts         # Drizzle schema
-│   │   └── migrations/       # SQL migrations
-│   ├── services/
-│   │   ├── ingestion.ts      # Process incoming runs
-│   │   ├── analysis.ts       # Calculate metrics
-│   │   └── stats.ts          # Update test_stats
-│   └── dashboard/
-│       ├── index.html        # Main dashboard
-│       ├── styles.css        # Dashboard styles
-│       └── app.js            # Dashboard JavaScript
-├── tests/
-│   ├── routes.test.ts
-│   └── services.test.ts
-├── package.json
-├── tsconfig.json
-├── drizzle.config.ts
+├── server/                   # Backend API
+│   ├── src/
+│   │   ├── index.ts          # App entry point
+│   │   ├── config.ts         # Environment config
+│   │   ├── routes/
+│   │   │   ├── index.ts      # Route aggregator
+│   │   │   ├── runs.ts       # /api/runs endpoints
+│   │   │   ├── tests.ts      # /api/tests endpoints
+│   │   │   └── insights.ts   # /api/insights endpoints
+│   │   ├── db/
+│   │   │   ├── index.ts      # Database connection
+│   │   │   ├── schema.ts     # Drizzle schema
+│   │   │   └── migrations/   # SQL migrations
+│   │   └── services/
+│   │       ├── ingestion.ts  # Process incoming runs
+│   │       ├── analysis.ts   # Calculate metrics
+│   │       └── stats.ts      # Update test_stats
+│   ├── tests/
+│   │   ├── routes.test.ts
+│   │   └── services.test.ts
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── drizzle.config.ts
+├── dashboard/                # React frontend
+│   ├── src/
+│   │   ├── main.tsx          # Entry point
+│   │   ├── App.tsx           # Root component
+│   │   ├── components/       # Reusable components
+│   │   │   ├── Card.tsx
+│   │   │   ├── Table.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   └── Chart.tsx
+│   │   ├── pages/            # Page components
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── RunDetail.tsx
+│   │   │   └── TestDetail.tsx
+│   │   └── lib/              # Utils, API client
+│   │       └── api.ts
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   ├── tailwind.config.js
+│   └── tsconfig.json
+├── docker-compose.yml        # Local dev (app + postgres)
+├── Dockerfile                # Production image
 └── README.md
 ```
 
