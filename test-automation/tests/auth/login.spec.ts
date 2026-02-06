@@ -10,11 +10,11 @@ test.describe('Login', () => {
     await loginPage.open();
   });
 
-  test('should display login page correctly', async () => {
+  test('should display login page correctly @smoke', async () => {
     await loginPage.expectPageVisible();
   });
 
-  test('should login successfully with valid credentials', async () => {
+  test('should login successfully with valid credentials @smoke', async () => {
     const { email, password } = TEST_USERS.user;
     
     await loginPage.login(email, password);
@@ -60,7 +60,7 @@ test.describe('Login', () => {
     await expect(loginPage.page).toHaveURL('/register');
   });
 
-  test('should logout successfully after login', async ({ page }) => {
+  test('should logout successfully after login @smoke', async ({ page }) => {
     const { email, password } = TEST_USERS.user;
     
     await loginPage.login(email, password);
