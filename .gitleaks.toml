@@ -1,0 +1,32 @@
+# Gitleaks configuration
+# See: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+# Extend the default gitleaks config
+useDefault = true
+
+[allowlist]
+  description = "Allowlist for false positives"
+
+  # Test files contain fake/fixture secrets by design
+  paths = [
+    '''tests?/''',
+    '''.*_test\.py$''',
+    '''test_.*\.py$''',
+    '''.*\.test\.[jt]sx?$''',
+    '''.*\.spec\.[jt]sx?$''',
+  ]
+
+  # Allow obvious placeholder values that are clearly not real secrets
+  regexes = [
+    '''REPLACE-ME''',
+    '''CHANGEME''',
+    '''change-me''',
+    '''changeme''',
+    '''your-.*-key''',
+    '''example''',
+    '''placeholder''',
+    '''k8s-secret-key-change''',
+    '''ci-test-''',
+    '''not-for-production''',
+  ]
