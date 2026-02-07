@@ -280,7 +280,11 @@ test.describe('Test Detail Page', () => {
     await navigateToTestDetail(page);
 
     // Click on a history row (should navigate to run)
-    const historyRow = page.locator('text=Run History').locator('..').locator('table tbody tr').first();
+    // Run History table has unique "Date" column to distinguish it from other tables
+    const historyTable = page.getByRole('table').filter({
+      has: page.getByRole('columnheader', { name: 'Date' }),
+    });
+    const historyRow = historyTable.locator('tbody tr').first();
     await historyRow.click();
 
     // Should navigate to run detail
@@ -320,8 +324,11 @@ test.describe('Data Display', () => {
 
     // If there were no runs, we'd see this message
     // Since we have data, verify the table has rows instead
-    const recentRunsSection = page.locator('text=Recent Runs').locator('..');
-    const rows = recentRunsSection.locator('table tbody tr');
+    // Recent Runs table has unique "Branch" column to distinguish it from other tables
+    const recentRunsTable = page.getByRole('table').filter({
+      has: page.getByRole('columnheader', { name: 'Branch' }),
+    });
+    const rows = recentRunsTable.locator('tbody tr');
     expect(await rows.count()).toBeGreaterThan(0);
   });
 });
