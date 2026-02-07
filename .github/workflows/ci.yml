@@ -11,6 +11,7 @@ on:
 env:
   BASE_URL: http://localhost:5173
   AUTH_URL: http://localhost:8001
+  K3D_CLUSTER: sut-ci
 
 jobs:
   # ============================================
@@ -72,17 +73,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start services
+      - name: Install k3d
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml up -d --build
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
-      - name: Wait for services
+      - name: Create k3d cluster
         run: |
-          echo "Waiting for backend..."
+          k3d cluster create $K3D_CLUSTER \
+            --no-lb \
+            --wait \
+            --timeout 120s
+
+      - name: Build Docker images
+        run: |
+          docker build -t backend:ci sut/backend
+          docker build -t auth-service:ci sut/auth-service
+          docker build -t frontend:ci sut/frontend
+
+      - name: Import images to k3d
+        run: |
+          k3d image import backend:ci auth-service:ci frontend:ci -c $K3D_CLUSTER
+
+      - name: Deploy SUT to k3d
+        run: |
+          kubectl apply -k sut/k8s/overlays/ci
+          
+          echo "Waiting for deployments to be ready..."
+          kubectl wait --for=condition=available deployment/backend -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/auth-service -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/frontend -n sut --timeout=120s
+          
+          echo "All pods ready!"
+          kubectl get pods -n sut
+
+      - name: Start port forwards
+        run: |
+          kubectl port-forward -n sut svc/backend 8000:8000 &
+          kubectl port-forward -n sut svc/auth-service 8001:8001 &
+          kubectl port-forward -n sut svc/frontend 5173:80 &
+          
+          # Wait for port-forwards to establish
+          sleep 5
+          
+          echo "Waiting for backend health..."
           timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null 2>&1 || curl -s http://localhost:8000/api/products > /dev/null 2>&1; do sleep 2; done'
           echo "Backend ready!"
 
@@ -98,11 +131,10 @@ jobs:
           pip install pytest
           pytest tests/integration -v --tb=short
 
-      - name: Stop services
+      - name: Delete k3d cluster
         if: always()
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml down -v
+          k3d cluster delete $K3D_CLUSTER || true
 
   # ============================================
   # E2E SMOKE TESTS - Run on PR only (<5 min)
@@ -115,16 +147,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start SUT containers
+      - name: Install k3d
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml up -d --build
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
-      - name: Wait for SUT to be healthy
+      - name: Create k3d cluster
         run: |
+          k3d cluster create $K3D_CLUSTER \
+            --no-lb \
+            --wait \
+            --timeout 120s
+
+      - name: Build Docker images
+        run: |
+          docker build -t backend:ci sut/backend
+          docker build -t auth-service:ci sut/auth-service
+          docker build -t frontend:ci sut/frontend
+
+      - name: Import images to k3d
+        run: |
+          k3d image import backend:ci auth-service:ci frontend:ci -c $K3D_CLUSTER
+
+      - name: Deploy SUT to k3d
+        run: |
+          kubectl apply -k sut/k8s/overlays/ci
+          
+          echo "Waiting for deployments to be ready..."
+          kubectl wait --for=condition=available deployment/backend -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/auth-service -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/frontend -n sut --timeout=120s
+          
+          echo "All pods ready!"
+          kubectl get pods -n sut
+
+      - name: Start port forwards
+        run: |
+          kubectl port-forward -n sut svc/backend 8000:8000 &
+          kubectl port-forward -n sut svc/auth-service 8001:8001 &
+          kubectl port-forward -n sut svc/frontend 5173:80 &
+          
+          # Wait for port-forwards to establish
+          sleep 5
+          
           echo "Waiting for backend..."
           timeout 60 bash -c 'until curl -s http://localhost:8000/api/products > /dev/null; do sleep 2; done'
           echo "Backend ready!"
@@ -152,7 +216,7 @@ jobs:
 
       - name: Seed test data
         run: |
-          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed
+          kubectl exec -n sut deployment/backend -- python -m app.db.seed
 
       - name: Run smoke tests
         run: |
@@ -170,11 +234,10 @@ jobs:
           path: test-automation/playwright-report/
           retention-days: 7
 
-      - name: Stop containers
+      - name: Delete k3d cluster
         if: always()
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml down -v
+          k3d cluster delete $K3D_CLUSTER || true
 
   # ============================================
   # E2E FULL TESTS - Run on merge + nightly
@@ -189,16 +252,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start SUT containers
+      - name: Install k3d
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml up -d --build
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
 
-      - name: Wait for SUT to be healthy
+      - name: Create k3d cluster
         run: |
+          k3d cluster create $K3D_CLUSTER \
+            --no-lb \
+            --wait \
+            --timeout 120s
+
+      - name: Build Docker images
+        run: |
+          docker build -t backend:ci sut/backend
+          docker build -t auth-service:ci sut/auth-service
+          docker build -t frontend:ci sut/frontend
+
+      - name: Import images to k3d
+        run: |
+          k3d image import backend:ci auth-service:ci frontend:ci -c $K3D_CLUSTER
+
+      - name: Deploy SUT to k3d
+        run: |
+          kubectl apply -k sut/k8s/overlays/ci
+          
+          echo "Waiting for deployments to be ready..."
+          kubectl wait --for=condition=available deployment/backend -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/auth-service -n sut --timeout=120s
+          kubectl wait --for=condition=available deployment/frontend -n sut --timeout=120s
+          
+          echo "All pods ready!"
+          kubectl get pods -n sut
+
+      - name: Start port forwards
+        run: |
+          kubectl port-forward -n sut svc/backend 8000:8000 &
+          kubectl port-forward -n sut svc/auth-service 8001:8001 &
+          kubectl port-forward -n sut svc/frontend 5173:80 &
+          
+          # Wait for port-forwards to establish
+          sleep 5
+          
           echo "Waiting for backend..."
           timeout 60 bash -c 'until curl -s http://localhost:8000/api/products > /dev/null; do sleep 2; done'
           echo "Backend ready!"
@@ -226,7 +321,7 @@ jobs:
 
       - name: Seed test data
         run: |
-          docker compose -f sut/docker-compose.ci.yml exec -T backend python -m app.db.seed
+          kubectl exec -n sut deployment/backend -- python -m app.db.seed
 
       - name: Run full E2E tests
         run: |
@@ -252,8 +347,7 @@ jobs:
           path: test-automation/test-results/
           retention-days: 7
 
-      - name: Stop containers
+      - name: Delete k3d cluster
         if: always()
         run: |
-          cd sut
-          docker compose -f docker-compose.ci.yml down -v
+          k3d cluster delete $K3D_CLUSTER || true
