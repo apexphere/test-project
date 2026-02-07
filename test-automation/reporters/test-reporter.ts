@@ -191,7 +191,7 @@ class TestReporterReporter implements Reporter {
       );
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout (fail-open)
 
       const response = await fetch(url, {
         method: 'POST',
@@ -221,7 +221,7 @@ class TestReporterReporter implements Reporter {
       // Graceful degradation: log the error but don't fail the test run
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          console.warn('[test-reporter] Request timed out after 10 seconds');
+          console.warn('[test-reporter] Request timed out after 5 seconds (fail-open: tests will pass)');
         } else if (
           error.message.includes('ECONNREFUSED') ||
           error.message.includes('fetch failed')

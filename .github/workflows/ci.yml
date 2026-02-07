@@ -160,6 +160,7 @@ jobs:
           npx playwright test --grep @smoke --reporter=github,html
         env:
           BASE_URL: http://localhost:5173
+          TEST_REPORTER_URL: ${{ secrets.TEST_REPORTER_URL }}
 
       - name: Upload smoke test report
         uses: actions/upload-artifact@v4
@@ -233,6 +234,7 @@ jobs:
           npx playwright test --reporter=github,html
         env:
           BASE_URL: http://localhost:5173
+          TEST_REPORTER_URL: ${{ secrets.TEST_REPORTER_URL }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
