@@ -6,6 +6,10 @@ kind: Kustomization
 resources:
   - ../../base
 
+# Override base secrets with CI test credentials
+patchesStrategicMerge:
+  - secrets-ci.yaml
+
 # Patches for CI
 patches:
   # Single replica in CI
@@ -44,6 +48,30 @@ patches:
     target:
       kind: Deployment
       name: frontend
+
+  # Use emptyDir for postgres in CI (no PVC needed)
+  - patch: |-
+      - op: remove
+        path: /spec/volumeClaimTemplates
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: data
+            emptyDir: {}
+    target:
+      kind: StatefulSet
+      name: postgres-main
+  - patch: |-
+      - op: remove
+        path: /spec/volumeClaimTemplates
+      - op: add
+        path: /spec/template/spec/volumes
+        value:
+          - name: data
+            emptyDir: {}
+    target:
+      kind: StatefulSet
+      name: postgres-auth
 
 # CI image configuration (built and loaded into kind)
 images:
