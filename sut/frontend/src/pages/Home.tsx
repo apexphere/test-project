@@ -4,11 +4,13 @@ export function Home() {
   return (
     <div className="home-page">
       <section className="hero">
-        <h1>Welcome to Mini Shop</h1>
-        <p>Your one-stop shop for awesome products</p>
-        <Link to="/products" className="btn-primary">
-          Browse Products
-        </Link>
+        <div className="hero-content">
+          <h1>Welcome to Mini Shop</h1>
+          <p>Your one-stop shop for awesome products</p>
+          <Link to="/products" className="btn-primary">
+            Browse Products
+          </Link>
+        </div>
       </section>
       
       <section className="features">
