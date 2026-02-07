@@ -60,7 +60,7 @@ export async function seedTestData(): Promise<SeedData> {
     await submitRun({
       source: 'ci',
       branch: 'develop',
-      commitSha: `flaky${i}12345678901234567890123456789012345`,
+      commitSha: `flaky${i}1234567890123456789012345678901234`,
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       results: [
