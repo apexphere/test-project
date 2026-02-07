@@ -5,7 +5,10 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - secrets-ci.yaml  # CI test credentials (overrides base CHANGEME placeholders)
+
+# Override base secrets with CI test credentials
+patchesStrategicMerge:
+  - secrets-ci.yaml
 
 # Override base secrets with CI test credentials
 patchesStrategicMerge:
