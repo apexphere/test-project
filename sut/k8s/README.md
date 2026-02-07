@@ -104,10 +104,15 @@ kubectl wait --for=condition=available --timeout=120s \
 # Check all pods are Running
 kubectl get pods -n sut
 
-# Test the endpoints
-curl http://localhost:8080/           # Frontend
-curl http://localhost:8080/api/health # Backend health
-curl http://localhost:8080/auth/health # Auth-service health
+# Test the frontend
+curl http://localhost:8080/
+
+# Health checks require port-forwarding (not exposed via ingress)
+kubectl port-forward -n sut svc/backend 8000:8000 &
+curl http://localhost:8000/health      # Backend health
+
+kubectl port-forward -n sut svc/auth-service 8001:8000 &
+curl http://localhost:8001/health      # Auth-service health
 ```
 
 ### 5. Seed Databases
@@ -152,11 +157,11 @@ kubectl exec -n sut deployment/backend -- python -m app.db.seed
 | `/api/products` | backend | Products API |
 | `/api/cart` | backend | Cart API |
 | `/api/orders` | backend | Orders API |
-| `/api/health` | backend | Backend health check |
 | `/auth/login` | auth-service | Login (POST) |
 | `/auth/register` | auth-service | Register (POST) |
-| `/auth/health` | auth-service | Auth health check |
 | `/auth/docs` | auth-service | Swagger UI |
+
+> **Note:** Health endpoints (`/health`) are available on each service directly but are not exposed via ingress. Use port-forwarding to access them (see [Port-forward to access services directly](#port-forward-to-access-services-directly)).
 
 ## Directory Structure
 
