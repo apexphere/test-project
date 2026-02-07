@@ -5,6 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   BASE_URL            — Frontend URL           (default: http://localhost:5173)
  *   AUTH_SERVICE_URL    — Auth Service URL        (default: http://localhost:8001)
  *   BACKEND_URL         — Backend API URL         (default: http://localhost:8000)
+ *   TEST_REPORTER_URL   — Test Reporter service  (optional, enables result collection)
  *
  * The Auth Service must be running before tests start. The global-setup
  * script waits for its /health endpoint and seeds test users via the
@@ -19,7 +20,8 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['html'],
-    ['list']
+    ['list'],
+    ['./reporters/test-reporter.ts'],
   ],
 
   /* Seed test users in the Auth Service before any test runs */
