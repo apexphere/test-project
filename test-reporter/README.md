@@ -54,6 +54,43 @@ pnpm run dev
 - API: `http://localhost:3000`
 - Dashboard: `http://localhost:5173`
 
+### Running with k3d (Kubernetes)
+
+For a production-like local environment using Kubernetes:
+
+```bash
+# Prerequisites: k3d, kubectl, docker
+# Install k3d: brew install k3d
+
+# Start the k3d cluster and deploy
+./k8s/scripts/local-setup.sh
+
+# View pods
+kubectl get pods -n test-reporter
+
+# View logs
+kubectl logs -n test-reporter deployment/server
+
+# Cleanup
+./k8s/scripts/local-cleanup.sh
+```
+
+- Dashboard: `http://localhost:8081`
+- API: `http://localhost:8081/api`
+
+The k3d setup creates a separate cluster (`test-reporter-dev`) from the SUT cluster, using port 8081 to avoid conflicts.
+
+#### k3d Architecture
+
+```
+k3d cluster (test-reporter-dev)
+├── ingress-nginx (LoadBalancer :8081)
+└── namespace: test-reporter
+    ├── postgres (StatefulSet)
+    ├── server (Deployment)
+    └── dashboard (Deployment)
+```
+
 ## API Endpoints
 
 ### Submit Test Run

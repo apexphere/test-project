@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-reporter-ingress
+  namespace: test-reporter
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"  # For large test reports
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: server
+                port:
+                  number: 3000
+          # Dashboard - catch-all (must be last)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard
+                port:
+                  number: 80
