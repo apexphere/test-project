@@ -30,6 +30,20 @@ patches:
     target:
       kind: Deployment
       name: frontend
+  # Vite dev server needs more resources than production builds
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+    target:
+      kind: Deployment
+      name: frontend
 
 # CI image configuration (built and loaded into kind)
 images:
