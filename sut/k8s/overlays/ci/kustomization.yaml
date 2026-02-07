@@ -17,6 +17,12 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+      # Disable Python bytecode cache for readOnlyRootFilesystem
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONDONTWRITEBYTECODE
+          value: "1"
     target:
       kind: Deployment
       name: auth-service
@@ -24,6 +30,12 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+      # Disable Python bytecode cache for readOnlyRootFilesystem
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONDONTWRITEBYTECODE
+          value: "1"
     target:
       kind: Deployment
       name: backend
