@@ -47,3 +47,34 @@ export const listRunsQuerySchema = z.object({
 });
 
 export type ListRunsQuery = z.infer<typeof listRunsQuerySchema>;
+
+// Query params for listing tests
+export const listTestsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  orderBy: z.enum(['flakiness', 'avgDuration', 'failRate', 'name']).default('name'),
+  order: z.enum(['asc', 'desc']).default('asc'),
+});
+
+export type ListTestsQuery = z.infer<typeof listTestsQuerySchema>;
+
+// Query params for test history
+export const testHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export type TestHistoryQuery = z.infer<typeof testHistoryQuerySchema>;
+
+// Query params for flaky tests insight
+export const flakyTestsQuerySchema = z.object({
+  minRuns: z.coerce.number().int().min(1).default(5),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type FlakyTestsQuery = z.infer<typeof flakyTestsQuerySchema>;
+
+// Query params for slow tests insight
+export const slowTestsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type SlowTestsQuery = z.infer<typeof slowTestsQuerySchema>;
