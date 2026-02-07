@@ -1,5 +1,5 @@
 """Public Auth Routes."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -111,7 +111,7 @@ def login(
     refresh_token_db = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
-        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
     )
     db.add(refresh_token_db)
     db.commit()
@@ -135,7 +135,7 @@ def refresh_token(
     # Find valid refresh token
     refresh_token_db = db.query(RefreshToken).filter(
         RefreshToken.token_hash == token_hash,
-        RefreshToken.expires_at > datetime.utcnow()
+        RefreshToken.expires_at > datetime.now(timezone.utc)
     ).first()
     
     if not refresh_token_db:
