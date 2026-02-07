@@ -16,6 +16,12 @@ patchesStrategicMerge:
 
 # Patches for CI
 patches:
+  # Remove local-config annotation from secrets so they're included in CI output
+  - patch: |-
+      - op: remove
+        path: /metadata/annotations/config.kubernetes.io~1local-config
+    target:
+      kind: Secret
   # Single replica in CI
   - patch: |-
       - op: replace
