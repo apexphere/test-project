@@ -219,6 +219,155 @@ The dashboard provides a visual interface for test analytics:
 - Recharts (charts)
 - React Router (navigation)
 
-## Future Phases
+## Deployment
 
-- **Phase 5**: CI/CD integration
+The test-reporter service is containerized and ready for deployment. Below are instructions for two recommended platforms.
+
+### Option 1: Fly.io (Recommended)
+
+Fly.io provides a simple deployment experience with a generous free tier.
+
+#### Prerequisites
+- Install the [Fly CLI](https://fly.io/docs/flyctl/install/)
+- Create a Fly.io account: `fly auth signup`
+
+#### Deploy
+
+```bash
+cd test-reporter
+
+# Create a new Fly app (first time only)
+fly launch --no-deploy
+
+# Create a PostgreSQL database
+fly postgres create --name test-reporter-db
+
+# Attach database to app (sets DATABASE_URL secret automatically)
+fly postgres attach test-reporter-db
+
+# Deploy the application
+fly deploy
+
+# Check the deployment
+fly status
+fly logs
+```
+
+#### Environment Variables
+
+Set any additional secrets:
+```bash
+fly secrets set LOG_LEVEL=info
+fly secrets set RETENTION_DAYS=90
+```
+
+#### Access
+
+Your app will be available at `https://test-reporter.fly.dev` (or your custom domain).
+
+### Option 2: Railway
+
+Railway offers a developer-friendly platform with automatic deployments from Git.
+
+#### Prerequisites
+- Create a [Railway account](https://railway.app/)
+- Install the [Railway CLI](https://docs.railway.app/develop/cli) (optional)
+
+#### Deploy via Dashboard
+
+1. Go to [Railway Dashboard](https://railway.app/dashboard)
+2. Click **New Project** → **Deploy from GitHub repo**
+3. Select your repository and the `test-reporter/server` directory
+4. Railway will auto-detect the Dockerfile
+5. Add a PostgreSQL database:
+   - Click **New** → **Database** → **PostgreSQL**
+   - Railway automatically sets `DATABASE_URL`
+6. Add environment variables in the **Variables** tab:
+   - `NODE_ENV=production`
+   - `PORT=3000`
+
+#### Deploy via CLI
+
+```bash
+cd test-reporter/server
+
+# Login to Railway
+railway login
+
+# Initialize project
+railway init
+
+# Add PostgreSQL
+railway add --database postgres
+
+# Deploy
+railway up
+
+# Get the deployment URL
+railway open
+```
+
+#### Custom Domain
+
+In the Railway dashboard, go to **Settings** → **Domains** to add a custom domain.
+
+### CI Integration
+
+Once deployed, add the `TEST_REPORTER_URL` secret to your GitHub repository:
+
+1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Name: `TEST_REPORTER_URL`
+4. Value: Your deployment URL (e.g., `https://test-reporter.fly.dev` or `https://your-app.railway.app`)
+
+The CI workflow is already configured to pass this URL to Playwright tests. The custom reporter will automatically send test results to your deployed service.
+
+### Fail-Open Behavior
+
+The custom reporter (`test-automation/reporters/test-reporter.ts`) is designed with fail-open behavior:
+
+- **5-second timeout**: If the test-reporter service doesn't respond within 5 seconds, the reporter gives up
+- **No test failures**: Connection errors, timeouts, or service outages will NOT cause your tests to fail
+- **Graceful logging**: Issues are logged as warnings, not errors
+
+This ensures your CI pipeline remains reliable even if the reporting service is temporarily unavailable.
+
+### Health Check
+
+The service exposes a health endpoint for monitoring:
+
+```bash
+curl https://your-deployment-url.com/api/health
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-02-07T12:00:00.000Z",
+  "database": "connected",
+  "responseTimeMs": 5
+}
+```
+
+Returns HTTP 200 when healthy, HTTP 503 when database is disconnected (useful for load balancer health checks).
+
+### Docker Build
+
+The server Dockerfile (`server/Dockerfile`) is production-ready:
+
+```bash
+# Build the image
+docker build -t test-reporter:latest ./server
+
+# Run locally (requires DATABASE_URL)
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgres://user:pass@host:5432/db \
+  test-reporter:latest
+```
+
+The Dockerfile:
+- Multi-stage build for smaller image size
+- Runs as non-root (security best practice)
+- Includes healthcheck for container orchestration
+- Production dependencies only
