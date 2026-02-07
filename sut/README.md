@@ -30,17 +30,44 @@ A controlled System Under Test (SUT) for the test automation platform.
 
 ## Quick Start
 
-### With Docker (recommended)
+### Local Development with k3d (recommended)
 
 ```bash
-docker-compose up --build
+# One-command setup
+./dev.sh up
+
+# Or use the k8s script directly
+./k8s/scripts/local-setup.sh
 ```
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
+This will:
+1. Create a k3d cluster (`sut-dev`) with nginx ingress
+2. Build all Docker images
+3. Import images into k3d
+4. Deploy all services via Kustomize
+5. Wait for pods to be ready
+6. Seed the databases with test data
 
-### Local Development
+**Access the app:**
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:8080/api
+- Auth Service: http://localhost:8080/auth
+- API Docs: http://localhost:8080/api/docs
+
+**Test Credentials:**
+- Admin: admin@example.com / admin123
+- User: user@example.com / user123
+
+### Cleanup
+
+```bash
+./dev.sh down
+
+# Or manually
+./k8s/scripts/local-cleanup.sh
+```
+
+### Manual Development (without k8s)
 
 **Backend:**
 ```bash
@@ -65,6 +92,8 @@ cp .env.example .env  # Edit VITE_API_URL if backend is elsewhere
 
 npm run dev
 ```
+
+> **Note:** Manual development requires running PostgreSQL and Redis separately.
 
 ## Environment Variables
 
@@ -104,9 +133,17 @@ sut/
 │   │   ├── services/       # API client
 │   │   └── store/          # State management
 │   └── Dockerfile
-├── docker-compose.yml
+├── auth-service/           # Separate auth microservice
+├── k8s/                    # Kubernetes manifests
+│   ├── base/               # Shared manifests
+│   ├── overlays/           # Environment-specific configs
+│   └── scripts/            # Setup/cleanup scripts
 └── README.md
 ```
+
+## Kubernetes Details
+
+See [k8s/README.md](k8s/README.md) for detailed Kubernetes setup, troubleshooting, and architecture diagrams.
 
 ## Features (MVP)
 
