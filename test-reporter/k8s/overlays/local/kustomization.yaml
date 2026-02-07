@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Local development overlay for k3d
+
+resources:
+  - ../../base
+
+# Patches for local development
+patches:
+  # Reduce server replicas for local dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: server
+  # Use development environment
+  - patch: |-
+      - op: replace
+        path: /data/node_env
+        value: development
+    target:
+      kind: ConfigMap
+      name: server-config
+
+# Local image configuration (built with k3d image import)
+images:
+  - name: server
+    newName: test-reporter-server
+    newTag: local
+  - name: dashboard
+    newName: test-reporter-dashboard
+    newTag: local
