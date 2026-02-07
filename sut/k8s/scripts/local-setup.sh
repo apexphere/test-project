@@ -21,7 +21,18 @@ if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
     echo "📦 Creating k3d cluster: $CLUSTER_NAME"
     k3d cluster create "$CLUSTER_NAME" \
         --port 8080:80@loadbalancer \
-        --agents 2
+        --port 8443:443@loadbalancer \
+        --k3s-arg "--disable=traefik@server:0" \
+        --wait
+    
+    echo "🌐 Installing nginx ingress controller..."
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.2/deploy/static/provider/cloud/deploy.yaml
+    
+    echo "⏳ Waiting for ingress controller..."
+    kubectl wait --namespace ingress-nginx \
+        --for=condition=ready pod \
+        --selector=app.kubernetes.io/component=controller \
+        --timeout=120s
 else
     echo "✅ Cluster $CLUSTER_NAME already exists"
 fi
