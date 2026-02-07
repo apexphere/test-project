@@ -14,52 +14,15 @@ The Test Reporter service provides:
 ## Quick Start
 
 ### Prerequisites
-- Docker and Docker Compose
+- k3d, kubectl, docker
 - Node.js 20+ (for local development)
 - pnpm
 
-### Running with Docker Compose
-
-```bash
-# Start PostgreSQL + server
-docker-compose up -d
-
-# View logs
-docker-compose logs -f server
-
-# Stop
-docker-compose down
-```
-
-The API will be available at `http://localhost:3000`
-
-### Development Mode
-
-```bash
-# Start server + dashboard with hot reload
-docker-compose --profile dev up -d postgres server-dev dashboard-dev
-
-# Or run locally
-cd server
-pnpm install
-pnpm run db:migrate
-pnpm run dev
-
-# In another terminal, run the dashboard
-cd dashboard
-pnpm install
-pnpm run dev
-```
-
-- API: `http://localhost:3000`
-- Dashboard: `http://localhost:5173`
-
 ### Running with k3d (Kubernetes)
 
-For a production-like local environment using Kubernetes:
+For local development using Kubernetes:
 
 ```bash
-# Prerequisites: k3d, kubectl, docker
 # Install k3d: brew install k3d
 
 # Start the k3d cluster and deploy
@@ -90,6 +53,24 @@ k3d cluster (test-reporter-dev)
     ├── server (Deployment)
     └── dashboard (Deployment)
 ```
+
+### Development Mode
+
+```bash
+# Run server locally
+cd server
+pnpm install
+pnpm run db:migrate
+pnpm run dev
+
+# In another terminal, run the dashboard
+cd dashboard
+pnpm install
+pnpm run dev
+```
+
+- API: `http://localhost:3000`
+- Dashboard: `http://localhost:5173`
 
 ## API Endpoints
 
@@ -217,7 +198,9 @@ test-reporter/
 │   ├── vite.config.ts
 │   ├── Dockerfile
 │   └── nginx.conf
-├── docker-compose.yml
+├── k8s/                      # Kubernetes manifests
+│   ├── base/                 # Kustomize base
+│   └── scripts/              # Setup/cleanup scripts
 └── README.md
 ```
 
