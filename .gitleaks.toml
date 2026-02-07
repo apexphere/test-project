@@ -8,13 +8,14 @@ useDefault = true
 [allowlist]
   description = "Allowlist for false positives"
 
-  # Test files contain fake/fixture secrets by design
+  # Test files and CI config contain fake/fixture secrets by design
   paths = [
     '''tests?/''',
     '''.*_test\.py$''',
     '''test_.*\.py$''',
     '''.*\.test\.[jt]sx?$''',
     '''.*\.spec\.[jt]sx?$''',
+    '''k8s/overlays/ci/''',
   ]
 
   # Allow obvious placeholder values that are clearly not real secrets
