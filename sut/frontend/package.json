@@ -9,8 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "INTEGRATION_TESTS=true vitest run",
-    "test:unit": "vitest run --include 'src/**/*.test.{ts,tsx}'",
-    "test:integration": "INTEGRATION_TESTS=true vitest run --include 'tests/**/*.test.{ts,tsx}'",
+    "test:unit": "vitest run",
+    "test:integration": "INTEGRATION_TESTS=true vitest run",
     "test:watch": "INTEGRATION_TESTS=true vitest",
     "test:coverage": "INTEGRATION_TESTS=true vitest run --coverage"
   },
