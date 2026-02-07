@@ -27,7 +27,7 @@ export const TEST_USERS = {
   },
   user: {
     email: 'user@example.com',
-    password: 'user123',
+    password: 'user1234',
     fullName: 'Test User',
   },
 } as const;

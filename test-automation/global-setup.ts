@@ -26,7 +26,7 @@ const SEED_USERS: SeedUser[] = [
   },
   {
     email: 'user@example.com',
-    password: 'user123',
+    password: 'user1234',
     full_name: 'Test User',
   },
 ];
