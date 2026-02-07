@@ -27,6 +27,19 @@ class WeakSecretKeyError(ValueError):
     pass
 
 
+# Patterns that indicate weak/placeholder secrets that should be rejected
+WEAK_SECRET_PATTERNS = [
+    "changeme",
+    "password",
+    "secret",
+    "123456",
+    "admin",
+    "default",
+    "test",
+    "example",
+]
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
