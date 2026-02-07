@@ -6,6 +6,10 @@ kind: Kustomization
 resources:
   - ../../base
 
+# Override base secrets with CI test credentials
+patchesStrategicMerge:
+  - secrets-ci.yaml
+
 # Patches for CI
 patches:
   # Single replica in CI
