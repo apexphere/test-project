@@ -16,10 +16,10 @@ test.describe('Dashboard Page', () => {
     await expect(page.getByText('Loading...')).not.toBeVisible({ timeout: 10000 });
 
     // Verify stats cards are displayed
-    await expect(page.getByText('Total Runs')).toBeVisible();
-    await expect(page.getByText('Pass Rate')).toBeVisible();
-    await expect(page.getByText('Total Tests')).toBeVisible();
-    await expect(page.getByText('Trend')).toBeVisible();
+    await expect(page.getByText('Total Runs', { exact: true })).toBeVisible();
+    await expect(page.getByText('Pass Rate', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Total Tests', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Trend', { exact: true })).toBeVisible();
   });
 
   test('should display pass rate chart', async ({ page }) => {
@@ -168,12 +168,12 @@ test.describe('Run Detail Page', () => {
   test('should display test stats', async ({ page }) => {
     await navigateToRunDetail(page);
 
-    // Stats cards
-    await expect(page.getByText('Total Tests')).toBeVisible();
-    await expect(page.getByText('Passed')).toBeVisible();
-    await expect(page.getByText('Failed')).toBeVisible();
-    await expect(page.getByText('Skipped')).toBeVisible();
-    await expect(page.getByText('Pass Rate')).toBeVisible();
+    // Stats cards - use .first() for text that appears multiple times (cards + badges/tabs)
+    await expect(page.getByText('Total Tests', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Passed/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Failed/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Skipped/ })).toBeVisible();
+    await expect(page.getByText('Pass Rate', { exact: true }).first()).toBeVisible();
   });
 
   test('should filter tests by status using tabs', async ({ page }) => {
@@ -236,11 +236,11 @@ test.describe('Test Detail Page', () => {
     await navigateToTestDetail(page);
 
     // Stats should be visible
-    await expect(page.getByText('Total Runs')).toBeVisible();
-    await expect(page.getByText('Pass Rate')).toBeVisible();
-    await expect(page.getByText('Flakiness')).toBeVisible();
-    await expect(page.getByText('Avg Duration')).toBeVisible();
-    await expect(page.getByText('Duration Range')).toBeVisible();
+    await expect(page.getByText('Total Runs', { exact: true })).toBeVisible();
+    await expect(page.getByText('Pass Rate', { exact: true })).toBeVisible();
+    await expect(page.getByText('Flakiness', { exact: true })).toBeVisible();
+    await expect(page.getByText('Avg Duration', { exact: true })).toBeVisible();
+    await expect(page.getByText('Duration Range', { exact: true })).toBeVisible();
   });
 
   test('should display duration chart', async ({ page }) => {

@@ -37,7 +37,7 @@ async function submitRun(runData: {
   }
 
   const data = await response.json();
-  return data.run.id;
+  return data.runId;
 }
 
 export async function seedTestData(): Promise<SeedData> {
@@ -59,7 +59,7 @@ export async function seedTestData(): Promise<SeedData> {
     const runId = await submitRun({
       source: 'ci',
       branch: 'develop',
-      commitSha: `abc${i}def`,
+      commitSha: `abc${i}def123456789012345678901234567890123`,
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
       results: [
