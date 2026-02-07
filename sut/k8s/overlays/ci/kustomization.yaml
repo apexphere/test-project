@@ -50,6 +50,7 @@ patches:
       name: frontend
 
   # Use emptyDir for postgres in CI (no PVC needed)
+  # Also relax securityContext - postgres needs root for initialization
   - patch: |-
       - op: remove
         path: /spec/volumeClaimTemplates
@@ -58,6 +59,12 @@ patches:
         value:
           - name: data
             emptyDir: {}
+      - op: replace
+        path: /spec/template/spec/securityContext
+        value:
+          fsGroup: 70
+      - op: remove
+        path: /spec/template/spec/containers/0/securityContext
     target:
       kind: StatefulSet
       name: postgres-main
@@ -69,6 +76,12 @@ patches:
         value:
           - name: data
             emptyDir: {}
+      - op: replace
+        path: /spec/template/spec/securityContext
+        value:
+          fsGroup: 70
+      - op: remove
+        path: /spec/template/spec/containers/0/securityContext
     target:
       kind: StatefulSet
       name: postgres-auth
