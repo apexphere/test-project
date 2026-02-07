@@ -51,7 +51,34 @@ export async function seedTestData(): Promise<SeedData> {
     'products/list.spec.ts:should display products',
   ];
 
-  // Create 3 test runs with varying results
+  // Create flaky test runs FIRST (older timestamps, 5-8 hours ago)
+  // These populate the flaky test detection with alternating pass/fail
+  for (let i = 0; i < 4; i++) {
+    const startedAt = new Date(now.getTime() - (i + 5) * 3600000);
+    const completedAt = new Date(startedAt.getTime() + 60000);
+
+    await submitRun({
+      source: 'ci',
+      branch: 'develop',
+      commitSha: `flaky${i}12345678901234567890123456789012345`,
+      startedAt: startedAt.toISOString(),
+      completedAt: completedAt.toISOString(),
+      results: [
+        {
+          testId: 'flaky/unstable.spec.ts:flaky test',
+          title: 'flaky test',
+          file: 'flaky/unstable.spec.ts',
+          status: i % 2 === 0 ? 'passed' : 'failed', // Alternating
+          duration: 1000,
+          retries: i % 2 === 0 ? 0 : 2,
+          errorMessage: i % 2 !== 0 ? 'Random failure' : undefined,
+        },
+      ],
+    });
+  }
+
+  // Create main test runs SECOND (more recent timestamps, 1-3 hours ago)
+  // These should appear first in "Recent Runs" table
   for (let i = 0; i < 3; i++) {
     const startedAt = new Date(now.getTime() - (i + 1) * 3600000); // 1, 2, 3 hours ago
     const completedAt = new Date(startedAt.getTime() + 120000); // 2 min duration
@@ -106,32 +133,7 @@ export async function seedTestData(): Promise<SeedData> {
     runIds.push(runId);
   }
 
-  // Create additional runs to populate flaky test detection
-  // Alternating pass/fail creates high flakiness score
-  for (let i = 0; i < 4; i++) {
-    const startedAt = new Date(now.getTime() - (i + 5) * 3600000);
-    const completedAt = new Date(startedAt.getTime() + 60000);
-
-    await submitRun({
-      source: 'ci',
-      branch: 'develop',
-      startedAt: startedAt.toISOString(),
-      completedAt: completedAt.toISOString(),
-      results: [
-        {
-          testId: 'flaky/unstable.spec.ts:flaky test',
-          title: 'flaky test',
-          file: 'flaky/unstable.spec.ts',
-          status: i % 2 === 0 ? 'passed' : 'failed', // Alternating
-          duration: 1000,
-          retries: i % 2 === 0 ? 0 : 2,
-          errorMessage: i % 2 !== 0 ? 'Random failure' : undefined,
-        },
-      ],
-    });
-  }
-
-  console.log(`Seeded ${runIds.length} test runs`);
+  console.log(`Seeded ${runIds.length + 4} test runs`);
   return { runIds, testIds };
 }
 
