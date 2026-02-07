@@ -16,15 +16,19 @@ command -v k3d >/dev/null 2>&1 || { echo "❌ k3d is required. Install: brew ins
 command -v kubectl >/dev/null 2>&1 || { echo "❌ kubectl is required. Install: brew install kubectl"; exit 1; }
 command -v docker >/dev/null 2>&1 || { echo "❌ docker is required."; exit 1; }
 
-# Create cluster if not exists
-if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
-    echo "📦 Creating k3d cluster: $CLUSTER_NAME"
-    k3d cluster create "$CLUSTER_NAME" \
-        --port 8080:80@loadbalancer \
-        --agents 2
-else
-    echo "✅ Cluster $CLUSTER_NAME already exists"
+# Delete existing cluster if present (handles corrupted state)
+if k3d cluster list | grep -q "$CLUSTER_NAME"; then
+    echo "🗑️  Deleting existing cluster: $CLUSTER_NAME"
+    k3d cluster delete "$CLUSTER_NAME" 2>/dev/null || true
 fi
+
+# Create fresh cluster
+echo "📦 Creating k3d cluster: $CLUSTER_NAME"
+k3d cluster create "$CLUSTER_NAME" \
+    --port 8080:80@loadbalancer \
+    --agents 2 \
+    --wait \
+    --timeout 120s
 
 # Switch context
 kubectl config use-context "k3d-$CLUSTER_NAME"

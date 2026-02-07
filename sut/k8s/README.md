@@ -184,6 +184,21 @@ kind delete cluster --name sut-ci
 
 ## Troubleshooting
 
+### Cluster corrupted or in bad state
+
+If the cluster gets into a corrupted state (e.g., stuck creating, context errors, nodes not responding):
+
+```bash
+# Delete and recreate the cluster
+k3d cluster delete sut-dev
+k3d cluster create sut-dev --port 8080:80@loadbalancer --wait --timeout 120s
+
+# Verify it's healthy
+kubectl get nodes   # Should show Ready status
+```
+
+**Note:** The `local-setup.sh` script automatically deletes existing clusters before creating, so running it again will fix most cluster issues.
+
 ### Pods not starting
 
 ```bash
