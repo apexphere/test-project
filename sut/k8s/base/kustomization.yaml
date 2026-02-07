@@ -13,5 +13,6 @@ resources:
   - frontend
   - ingress.yaml
 
-commonLabels:
-  app.kubernetes.io/part-of: mini-ecommerce
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: mini-ecommerce

@@ -30,6 +30,17 @@ patches:
     target:
       kind: Deployment
       name: frontend
+  # Increase frontend memory for Vite dev server
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+    target:
+      kind: Deployment
+      name: frontend
 
 # Local image configuration (built with k3d image import)
 images:
