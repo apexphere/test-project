@@ -13,22 +13,22 @@ export function Products() {
 
   const pageSize = 12;
 
-  const fetchProducts = async () => {
-    setIsLoading(true);
-    try {
-      const data = await productsApi.list(page, pageSize, undefined, search || undefined);
-      setProducts(data.items);
-      setTotal(data.total);
-    } catch (err) {
-      setError('Failed to load products');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const data = await productsApi.list(page, pageSize, undefined, search || undefined);
+        setProducts(data.items);
+        setTotal(data.total);
+      } catch {
+        setError('Failed to load products');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchProducts();
-  }, [page, search]);
+  }, [page, pageSize, search]);
 
   const totalPages = Math.ceil(total / pageSize);
 
