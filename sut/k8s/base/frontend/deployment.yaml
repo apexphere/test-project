@@ -26,8 +26,14 @@ spec:
             httpGet:
               path: /
               port: 5173
-            initialDelaySeconds: 15
+            initialDelaySeconds: 5
             periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5173
+            initialDelaySeconds: 10
+            periodSeconds: 10
           resources:
             requests:
               memory: "64Mi"

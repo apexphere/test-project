@@ -108,16 +108,20 @@ jobs:
 
       - name: Start port forwards
         run: |
-          kubectl port-forward -n sut svc/backend 8000:8000 &
-          kubectl port-forward -n sut svc/auth-service 8001:8001 &
-          kubectl port-forward -n sut svc/frontend 5173:80 &
+          # Start port-forwards with retry logic
+          for svc in "backend:8000:8000" "auth-service:8001:8001" "frontend:5173:80"; do
+            IFS=':' read -r name local_port svc_port <<< "$svc"
+            kubectl port-forward -n sut svc/$name $local_port:$svc_port &
+          done
           
-          # Wait for port-forwards to establish
-          sleep 5
-          
+          # Wait for services to be accessible
           echo "Waiting for backend health..."
-          timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null 2>&1 || curl -s http://localhost:8000/api/products > /dev/null 2>&1; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/health > /dev/null 2>&1; do sleep 2; done'
           echo "Backend ready!"
+          
+          echo "Waiting for auth-service health..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8001/health > /dev/null 2>&1; do sleep 2; done'
+          echo "Auth-service ready!"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -182,19 +186,23 @@ jobs:
 
       - name: Start port forwards
         run: |
-          kubectl port-forward -n sut svc/backend 8000:8000 &
-          kubectl port-forward -n sut svc/auth-service 8001:8001 &
-          kubectl port-forward -n sut svc/frontend 5173:80 &
+          # Start port-forwards with retry logic
+          for svc in "backend:8000:8000" "auth-service:8001:8001" "frontend:5173:80"; do
+            IFS=':' read -r name local_port svc_port <<< "$svc"
+            kubectl port-forward -n sut svc/$name $local_port:$svc_port &
+          done
           
-          # Wait for port-forwards to establish
-          sleep 5
-          
+          # Wait for all services to be accessible
           echo "Waiting for backend..."
-          timeout 60 bash -c 'until curl -s http://localhost:8000/api/products > /dev/null; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/api/products > /dev/null 2>&1; do sleep 2; done'
           echo "Backend ready!"
           
+          echo "Waiting for auth-service..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8001/health > /dev/null 2>&1; do sleep 2; done'
+          echo "Auth-service ready!"
+          
           echo "Waiting for frontend..."
-          timeout 60 bash -c 'until curl -s http://localhost:5173 > /dev/null; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:5173 > /dev/null 2>&1; do sleep 2; done'
           echo "Frontend ready!"
 
       - name: Setup Node.js
@@ -287,19 +295,23 @@ jobs:
 
       - name: Start port forwards
         run: |
-          kubectl port-forward -n sut svc/backend 8000:8000 &
-          kubectl port-forward -n sut svc/auth-service 8001:8001 &
-          kubectl port-forward -n sut svc/frontend 5173:80 &
+          # Start port-forwards with retry logic
+          for svc in "backend:8000:8000" "auth-service:8001:8001" "frontend:5173:80"; do
+            IFS=':' read -r name local_port svc_port <<< "$svc"
+            kubectl port-forward -n sut svc/$name $local_port:$svc_port &
+          done
           
-          # Wait for port-forwards to establish
-          sleep 5
-          
+          # Wait for all services to be accessible
           echo "Waiting for backend..."
-          timeout 60 bash -c 'until curl -s http://localhost:8000/api/products > /dev/null; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/api/products > /dev/null 2>&1; do sleep 2; done'
           echo "Backend ready!"
           
+          echo "Waiting for auth-service..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8001/health > /dev/null 2>&1; do sleep 2; done'
+          echo "Auth-service ready!"
+          
           echo "Waiting for frontend..."
-          timeout 60 bash -c 'until curl -s http://localhost:5173 > /dev/null; do sleep 2; done'
+          timeout 60 bash -c 'until curl -sf http://localhost:5173 > /dev/null 2>&1; do sleep 2; done'
           echo "Frontend ready!"
 
       - name: Setup Node.js
