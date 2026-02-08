@@ -1,8 +1,8 @@
-"""Public Auth Routes."""
+"""Public Auth Routes with Rate Limiting."""
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -22,6 +22,7 @@ from app.core.jwt import (
     hash_refresh_token,
     decode_token,
 )
+from app.core.rate_limit import limiter, LOGIN_LIMIT, REGISTER_LIMIT, REFRESH_LIMIT
 from app.config import get_settings
 
 router = APIRouter()
@@ -54,8 +55,12 @@ def get_current_user(
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user account."""
+@limiter.limit(REGISTER_LIMIT)
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user account.
+    
+    Rate limited to 3 requests per minute per IP to prevent abuse.
+    """
     # Check if email already exists
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
@@ -78,11 +83,16 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit(LOGIN_LIMIT)
 def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db)
 ):
-    """Authenticate user and return access token."""
+    """Authenticate user and return access token.
+    
+    Rate limited to 5 requests per minute per IP to prevent brute-force attacks.
+    """
     # Find user
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -125,12 +135,17 @@ def login(
 
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit(REFRESH_LIMIT)
 def refresh_token(
-    request: TokenRefreshRequest,
+    request: Request,
+    token_request: TokenRefreshRequest,
     db: Session = Depends(get_db)
 ):
-    """Refresh access token using refresh token."""
-    token_hash = hash_refresh_token(request.refresh_token)
+    """Refresh access token using refresh token.
+    
+    Rate limited to 10 requests per minute per IP.
+    """
+    token_hash = hash_refresh_token(token_request.refresh_token)
     
     # Find valid refresh token
     refresh_token_db = db.query(RefreshToken).filter(
