@@ -223,10 +223,16 @@ body {
 /* Home page */
 .home-page {
   width: 100%;
+  overflow-x: hidden;
 }
 
 .home-page .hero {
-  width: 100%;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
   text-align: center;
   padding: 4rem 1rem;
   background: linear-gradient(135deg, var(--primary), #8b5cf6);
@@ -236,6 +242,7 @@ body {
 .home-page .hero-content {
   max-width: 800px;
   margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .home-page .hero h1 {
@@ -282,31 +289,39 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 3rem 1rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .features {
     grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
-    padding: 3rem 2rem;
+    padding: 4rem 2rem;
   }
 }
 
 @media (min-width: 1024px) {
   .features {
     grid-template-columns: repeat(3, 1fr);
+    padding: 5rem 2rem;
   }
 }
 
 .feature {
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2rem 1.5rem;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .feature-icon {
