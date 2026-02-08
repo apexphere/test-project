@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cartApi, ordersApi } from '../services/api';
-import { useAuth } from '../store/AuthContext';
 import type { Cart as CartType } from '../types';
 
 export function Cart() {
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
   const [cart, setCart] = useState<CartType | null>(null);
@@ -15,11 +13,6 @@ export function Cart() {
   const [isOrdering, setIsOrdering] = useState(false);
 
   const fetchCart = async () => {
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
-    
     try {
       const data = await cartApi.get();
       setCart(data);
@@ -32,7 +25,7 @@ export function Cart() {
 
   useEffect(() => {
     fetchCart();
-  }, [isAuthenticated]);
+  }, []);
 
   const handleUpdateQuantity = async (itemId: number, quantity: number) => {
     if (quantity < 1) {
@@ -75,15 +68,6 @@ export function Cart() {
       setIsOrdering(false);
     }
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="cart-page">
-        <h1>Shopping Cart</h1>
-        <p>Please login to view your cart.</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
