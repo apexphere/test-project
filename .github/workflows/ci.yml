@@ -77,15 +77,76 @@ jobs:
         run: npm run test:unit
 
   # ============================================
+  # DOCKER BUILD - Build and cache images
+  # ============================================
+  build-images:
+    name: Build Docker Images
+    needs: [unit-backend, unit-frontend]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build all images in parallel with layer caching
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: sut/backend
+          tags: backend:ci
+          outputs: type=docker,dest=/tmp/backend.tar
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build auth-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: sut/auth-service
+          tags: auth-service:ci
+          outputs: type=docker,dest=/tmp/auth-service.tar
+          cache-from: type=gha,scope=auth-service
+          cache-to: type=gha,scope=auth-service,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: sut/frontend
+          tags: frontend:ci
+          outputs: type=docker,dest=/tmp/frontend.tar
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Upload Docker images
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: /tmp/*.tar
+          retention-days: 1
+
+  # ============================================
   # INTEGRATION TESTS - Run on PR + main/develop
   # ============================================
   integration-tests:
     name: Integration Tests
-    needs: [unit-backend, unit-frontend]
+    needs: [build-images]
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: /tmp
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/backend.tar
+          docker load -i /tmp/auth-service.tar
+          docker load -i /tmp/frontend.tar
 
       - name: Install k3d
         run: |
@@ -97,12 +158,6 @@ jobs:
             --no-lb \
             --wait \
             --timeout 120s
-
-      - name: Build Docker images
-        run: |
-          docker build -t backend:ci sut/backend
-          docker build -t auth-service:ci sut/auth-service
-          docker build -t frontend:ci sut/frontend
 
       - name: Import images to k3d
         run: |
@@ -163,11 +218,23 @@ jobs:
   # ============================================
   e2e-smoke:
     name: E2E Smoke Tests
-    needs: [integration-tests]
+    needs: [build-images, integration-tests]
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: /tmp
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/backend.tar
+          docker load -i /tmp/auth-service.tar
+          docker load -i /tmp/frontend.tar
 
       - name: Install k3d
         run: |
@@ -179,12 +246,6 @@ jobs:
             --no-lb \
             --wait \
             --timeout 120s
-
-      - name: Build Docker images
-        run: |
-          docker build -t backend:ci sut/backend
-          docker build -t auth-service:ci sut/auth-service
-          docker build -t frontend:ci sut/frontend
 
       - name: Import images to k3d
         run: |
@@ -274,13 +335,25 @@ jobs:
   # ============================================
   e2e-full:
     name: E2E Full Tests
-    needs: [integration-tests]
+    needs: [build-images, integration-tests]
     if: |
       github.event_name == 'schedule' || 
       (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: /tmp
+
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/backend.tar
+          docker load -i /tmp/auth-service.tar
+          docker load -i /tmp/frontend.tar
 
       - name: Install k3d
         run: |
@@ -292,12 +365,6 @@ jobs:
             --no-lb \
             --wait \
             --timeout 120s
-
-      - name: Build Docker images
-        run: |
-          docker build -t backend:ci sut/backend
-          docker build -t auth-service:ci sut/auth-service
-          docker build -t frontend:ci sut/frontend
 
       - name: Import images to k3d
         run: |
