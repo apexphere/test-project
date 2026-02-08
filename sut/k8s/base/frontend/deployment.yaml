@@ -58,10 +58,14 @@ spec:
               mountPath: /home/node/.cache
             - name: npm-cache
               mountPath: /home/node/.npm
+            - name: vite-cache
+              mountPath: /app/node_modules/.vite
       volumes:
         - name: tmp
           emptyDir: {}
         - name: node-cache
           emptyDir: {}
         - name: npm-cache
+          emptyDir: {}
+        - name: vite-cache
           emptyDir: {}
