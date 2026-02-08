@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../store/AuthContext';
 import { ordersApi } from '../services/api';
 import type { Order } from '../types';
 
 export function Orders() {
-  const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   const fetchOrders = async () => {
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
-    
     try {
       const data = await ordersApi.list();
       setOrders(data.orders);
@@ -27,7 +20,7 @@ export function Orders() {
 
   useEffect(() => {
     fetchOrders();
-  }, [isAuthenticated]);
+  }, []);
 
   const handleCancel = async (orderId: number) => {
     try {
@@ -48,15 +41,6 @@ export function Orders() {
       default: return '';
     }
   };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="orders-page">
-        <h1>My Orders</h1>
-        <p>Please login to view your orders.</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

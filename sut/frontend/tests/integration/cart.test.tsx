@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Cart } from '../../src/pages/Cart';
+import { Login } from '../../src/pages/Login';
+import { ProtectedRoute } from '../../src/components/ProtectedRoute';
 import { AuthProvider } from '../../src/store/AuthContext';
 import { server } from '../mocks/server';
 import { errorHandlers } from '../mocks/handlers';
@@ -31,13 +33,39 @@ function createWrapper(authenticated = false) {
   };
 }
 
+// Create wrapper with MemoryRouter for testing protected routes
+function createProtectedRouteWrapper(authenticated = false) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  if (authenticated) {
+    localStorage.setItem('token', 'mock-jwt-token');
+  }
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <MemoryRouter initialEntries={['/cart']}>
+            <Routes>
+              <Route path="/cart" element={<ProtectedRoute>{children}</ProtectedRoute>} />
+              <Route path="/login" element={<Login />} />
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    );
+  };
+}
+
 describe('Cart Integration', () => {
   describe('Unauthenticated user', () => {
-    it('shows login prompt for unauthenticated user', async () => {
-      render(<Cart />, { wrapper: createWrapper(false) });
+    it('redirects unauthenticated user to login page', async () => {
+      render(<Cart />, { wrapper: createProtectedRouteWrapper(false) });
 
       await waitFor(() => {
-        expect(screen.getByText('Please login to view your cart.')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Login' })).toBeInTheDocument();
       });
     });
   });
