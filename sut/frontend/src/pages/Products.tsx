@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { productsApi } from '../services/api';
 import { ProductCard } from '../components/ProductCard';
+import { debounce } from '../utils/debounce';
 import type { Product } from '../types';
 
 export function Products() {
@@ -9,9 +10,42 @@ export function Products() {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  // searchInput = immediate input value (for controlled input)
+  // search = debounced value (triggers API call)
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
   const pageSize = 12;
+
+  // Create debounced search function
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce((value: string) => {
+        setSearch(value);
+        setPage(1);
+        setIsDebouncing(false);
+      }, 300),
+    []
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSetSearch.cancel();
+    };
+  }, [debouncedSetSearch]);
+
+  // Handle input change
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearchInput(value);
+      setIsDebouncing(true);
+      debouncedSetSearch(value);
+    },
+    [debouncedSetSearch]
+  );
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -40,12 +74,11 @@ export function Products() {
         <input
           type="text"
           placeholder="Search products..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
+          value={searchInput}
+          onChange={handleSearchChange}
+          aria-label="Search products"
         />
+        {isDebouncing && <span className="search-indicator">...</span>}
       </div>
       
       {error && <div className="error-message">{error}</div>}

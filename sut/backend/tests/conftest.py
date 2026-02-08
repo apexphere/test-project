@@ -1,9 +1,14 @@
 """Shared fixtures for all tests."""
+import os
 import sys
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 import pytest
+
+# Enable debug mode for tests — allows app to start without strong SECRET_KEY
+# This must be set BEFORE any app imports that call get_settings()
+os.environ.setdefault("DEBUG", "true")
 
 # Add backend app to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
