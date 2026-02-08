@@ -439,3 +439,53 @@ jobs:
         if: always()
         run: |
           k3d cluster delete $K3D_CLUSTER || true
+
+  # ============================================
+  # SKIP REPORTERS - Report success when jobs are skipped
+  # ============================================
+  # These companion jobs ensure branch protection passes when
+  # conditional jobs are skipped due to path filtering.
+
+  unit-backend-skipped:
+    name: Unit Tests (Backend)
+    needs: changes
+    if: ${{ needs.changes.outputs.sut != 'true' && needs.changes.outputs.global != 'true' && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipped - no relevant changes to sut/ or global files"
+
+  unit-frontend-skipped:
+    name: Unit Tests (Frontend)
+    needs: changes
+    if: ${{ needs.changes.outputs.sut != 'true' && needs.changes.outputs.global != 'true' && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipped - no relevant changes to sut/ or global files"
+
+  integration-tests-skipped:
+    name: Integration Tests
+    needs: changes
+    if: ${{ needs.changes.outputs.sut != 'true' && needs.changes.outputs.global != 'true' && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipped - no relevant changes to sut/ or global files"
+
+  e2e-smoke-skipped:
+    name: E2E Smoke Tests
+    needs: changes
+    if: |
+      (needs.changes.outputs.sut != 'true' && needs.changes.outputs.test-automation != 'true' && needs.changes.outputs.global != 'true') ||
+      github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipped - no relevant changes or not a pull request"
+
+  e2e-full-skipped:
+    name: E2E Full Tests
+    needs: changes
+    if: |
+      (needs.changes.outputs.sut != 'true' && needs.changes.outputs.test-automation != 'true' && needs.changes.outputs.global != 'true' && github.event_name != 'schedule') ||
+      (github.event_name != 'schedule' && !(github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')))
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipped - no relevant changes or not a merge/scheduled run"
