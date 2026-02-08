@@ -9,6 +9,7 @@ import { Register } from './pages/Register';
 import { Products } from './pages/Products';
 import { Cart } from './pages/Cart';
 import { Orders } from './pages/Orders';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
 const queryClient = new QueryClient();
@@ -27,8 +28,8 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/products" element={<Products />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                  <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                 </Routes>
               </ErrorBoundary>
             </main>
