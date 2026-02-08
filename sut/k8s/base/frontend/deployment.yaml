@@ -56,8 +56,12 @@ spec:
               mountPath: /tmp
             - name: node-cache
               mountPath: /home/node/.cache
+            - name: npm-cache
+              mountPath: /home/node/.npm
       volumes:
         - name: tmp
           emptyDir: {}
         - name: node-cache
+          emptyDir: {}
+        - name: npm-cache
           emptyDir: {}

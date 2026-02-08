@@ -76,8 +76,12 @@ spec:
               mountPath: /tmp
             - name: cache
               mountPath: /home/appuser/.cache
+            - name: local
+              mountPath: /home/appuser/.local
       volumes:
         - name: tmp
           emptyDir: {}
         - name: cache
+          emptyDir: {}
+        - name: local
           emptyDir: {}
