@@ -1,9 +1,24 @@
 """Rate limiting configuration for auth endpoints."""
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from starlette.requests import Request
 
-# Create limiter instance using client IP as key
-limiter = Limiter(key_func=get_remote_address)
+
+def get_real_client_ip(request: Request) -> str:
+    """Extract real client IP from X-Forwarded-For header.
+
+    Behind k8s ingress/load balancers, request.client.host returns the
+    ingress pod IP, not the actual client. Nginx ingress sets X-Forwarded-For
+    with the real client IP as the first entry.
+    """
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # X-Forwarded-For format: "client, proxy1, proxy2, ..."
+        return forwarded.split(",")[0].strip()
+    return request.client.host or "unknown"
+
+
+# Create limiter instance using real client IP as key
+limiter = Limiter(key_func=get_real_client_ip)
 
 # Rate limit constants for auth endpoints
 # These are intentionally strict to prevent brute-force attacks
