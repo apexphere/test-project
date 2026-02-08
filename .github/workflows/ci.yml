@@ -15,6 +15,41 @@ env:
 
 jobs:
   # ============================================
+  # PATH CHANGE DETECTION
+  # ============================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      sut: ${{ steps.filter.outputs.sut }}
+      test-automation: ${{ steps.filter.outputs.test-automation }}
+      test-reporter: ${{ steps.filter.outputs.test-reporter }}
+      docs: ${{ steps.filter.outputs.docs }}
+      global: ${{ steps.filter.outputs.global }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sut:
+              - 'sut/**'
+            test-automation:
+              - 'test-automation/**'
+            test-reporter:
+              - 'test-reporter/**'
+            docs:
+              - 'docs/**'
+              - '*.md'
+              - 'LICENSE'
+            global:
+              - '.github/**'
+              - '.gitleaks.toml'
+              - 'package.json'
+              - 'package-lock.json'
+
+  # ============================================
   # SECRET SCANNING - Run on every push
   # ============================================
   secrets-scan:
@@ -33,6 +68,8 @@ jobs:
   # ============================================
   unit-backend:
     name: Unit Tests (Backend)
+    needs: changes
+    if: ${{ needs.changes.outputs.sut == 'true' || needs.changes.outputs.global == 'true' || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +93,8 @@ jobs:
 
   unit-frontend:
     name: Unit Tests (Frontend)
+    needs: changes
+    if: ${{ needs.changes.outputs.sut == 'true' || needs.changes.outputs.global == 'true' || github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -81,8 +120,13 @@ jobs:
   # ============================================
   integration-tests:
     name: Integration Tests
-    needs: [unit-backend, unit-frontend]
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    needs: [changes, unit-backend, unit-frontend]
+    if: |
+      always() &&
+      (needs.unit-backend.result == 'success' || needs.unit-backend.result == 'skipped') &&
+      (needs.unit-frontend.result == 'success' || needs.unit-frontend.result == 'skipped') &&
+      (needs.changes.outputs.sut == 'true' || needs.changes.outputs.global == 'true' || github.event_name == 'schedule') &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -163,8 +207,12 @@ jobs:
   # ============================================
   e2e-smoke:
     name: E2E Smoke Tests
-    needs: [integration-tests]
-    if: github.event_name == 'pull_request'
+    needs: [changes, integration-tests]
+    if: |
+      always() &&
+      (needs.integration-tests.result == 'success' || needs.integration-tests.result == 'skipped') &&
+      (needs.changes.outputs.sut == 'true' || needs.changes.outputs.test-automation == 'true' || needs.changes.outputs.global == 'true') &&
+      github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -274,10 +322,12 @@ jobs:
   # ============================================
   e2e-full:
     name: E2E Full Tests
-    needs: [integration-tests]
+    needs: [changes, integration-tests]
     if: |
-      github.event_name == 'schedule' || 
-      (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'))
+      always() &&
+      (needs.integration-tests.result == 'success' || needs.integration-tests.result == 'skipped') &&
+      (needs.changes.outputs.sut == 'true' || needs.changes.outputs.test-automation == 'true' || needs.changes.outputs.global == 'true' || github.event_name == 'schedule') &&
+      (github.event_name == 'schedule' || (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
