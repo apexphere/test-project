@@ -13,9 +13,19 @@ spec:
       labels:
         app: frontend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: frontend:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5173
@@ -41,3 +51,21 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: node-cache
+              mountPath: /home/node/.cache
+            - name: npm-cache
+              mountPath: /home/node/.npm
+            - name: vite-cache
+              mountPath: /app/node_modules/.vite
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: node-cache
+          emptyDir: {}
+        - name: npm-cache
+          emptyDir: {}
+        - name: vite-cache
+          emptyDir: {}

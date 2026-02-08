@@ -13,9 +13,19 @@ spec:
       labels:
         app: dashboard
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: dashboard
           image: dashboard:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

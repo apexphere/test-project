@@ -13,9 +13,19 @@ spec:
       labels:
         app: auth-service
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: auth-service
           image: auth-service:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8001
@@ -46,3 +56,17 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /home/appuser/.cache
+            - name: local
+              mountPath: /home/appuser/.local
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: local
+          emptyDir: {}

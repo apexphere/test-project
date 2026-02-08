@@ -18,6 +18,12 @@ COPY . .
 ARG VITE_API_URL=http://localhost:8000
 ENV VITE_API_URL=$VITE_API_URL
 
+# Create non-root user and set ownership
+RUN chown -R node:node /app
+
+# Switch to non-root user (node user already exists in alpine image, UID 1000)
+USER node
+
 # Expose port
 EXPOSE 5173
 

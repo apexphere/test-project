@@ -6,16 +6,10 @@ kind: Kustomization
 resources:
   - ../../base
 
-# Override base secrets with CI test credentials
-patchesStrategicMerge:
-  - secrets-ci.yaml
-
-# Override base secrets with CI test credentials
-patchesStrategicMerge:
-  - secrets-ci.yaml
-
 # Patches for CI
 patches:
+  # Override base secrets with CI test credentials
+  - path: secrets-ci.yaml
   # Remove local-config annotation from secrets so they're included in CI output
   - patch: |-
       - op: remove
@@ -27,6 +21,16 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+      # Disable Python bytecode cache for readOnlyRootFilesystem
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+      # Relax runAsNonRoot for CI - image USER may not have consistent UID
+      - op: replace
+        path: /spec/template/spec/securityContext/runAsNonRoot
+        value: false
     target:
       kind: Deployment
       name: auth-service
@@ -34,6 +38,16 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+      # Disable Python bytecode cache for readOnlyRootFilesystem
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+      # Relax runAsNonRoot for CI - image USER may not have consistent UID
+      - op: replace
+        path: /spec/template/spec/securityContext/runAsNonRoot
+        value: false
     target:
       kind: Deployment
       name: backend
@@ -41,10 +55,14 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
+      # Relax runAsNonRoot for CI - node:alpine USER is UID 1000 but verification can timeout
+      - op: replace
+        path: /spec/template/spec/securityContext/runAsNonRoot
+        value: false
     target:
       kind: Deployment
       name: frontend
-  # Vite dev server needs more resources than production builds
+  # Vite dev server needs more resources and startup time than production builds
   - patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources
@@ -55,11 +73,31 @@ patches:
           limits:
             memory: "512Mi"
             cpu: "500m"
+      # Vite dev server takes 30-60s to start in CI (dependency pre-bundling)
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 6
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          failureThreshold: 4
     target:
       kind: Deployment
       name: frontend
 
   # Use emptyDir for postgres in CI (no PVC needed)
+  # Also relax securityContext - postgres needs root for initialization
   - patch: |-
       - op: remove
         path: /spec/volumeClaimTemplates
@@ -68,6 +106,12 @@ patches:
         value:
           - name: data
             emptyDir: {}
+      - op: replace
+        path: /spec/template/spec/securityContext
+        value:
+          fsGroup: 70
+      - op: remove
+        path: /spec/template/spec/containers/0/securityContext
     target:
       kind: StatefulSet
       name: postgres-main
@@ -79,6 +123,12 @@ patches:
         value:
           - name: data
             emptyDir: {}
+      - op: replace
+        path: /spec/template/spec/securityContext
+        value:
+          fsGroup: 70
+      - op: remove
+        path: /spec/template/spec/containers/0/securityContext
     target:
       kind: StatefulSet
       name: postgres-auth

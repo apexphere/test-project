@@ -13,9 +13,19 @@ spec:
       labels:
         app: backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: backend:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -61,3 +71,17 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /home/appuser/.cache
+            - name: local
+              mountPath: /home/appuser/.local
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: local
+          emptyDir: {}

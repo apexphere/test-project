@@ -13,10 +13,20 @@ spec:
       labels:
         app: server
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         # Run database migrations before starting the server
         - name: migrate
           image: server:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           command: ["node", "dist/db/migrate.js"]
           env:
@@ -28,6 +38,12 @@ spec:
       containers:
         - name: server
           image: server:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
