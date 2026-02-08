@@ -11,7 +11,7 @@ from app.core.security import hash_password
 class TestRegisterLogic:
     """Tests for registration logic."""
 
-    def test_register_creates_user(self, mock_db_session):
+    def test_register_creates_user(self, mock_db_session, mock_request):
         """Registration creates a new user with hashed password."""
         from app.api.routes.auth import register
         from app.schemas import UserCreate
@@ -35,13 +35,13 @@ class TestRegisterLogic:
             MockUser.return_value = mock_user_instance
             mock_db_session.query.return_value.filter.return_value.first.return_value = None
             
-            result = register(user_data, mock_db_session)
+            result = register(mock_request, user_data, mock_db_session)
         
         mock_db_session.add.assert_called_once()
         mock_db_session.commit.assert_called_once()
         assert result.email == user_data.email
 
-    def test_register_duplicate_email_raises_409(self, mock_db_session, mock_user):
+    def test_register_duplicate_email_raises_409(self, mock_db_session, mock_user, mock_request):
         """Registration with existing email raises HTTPException 409."""
         from app.api.routes.auth import register
         from app.schemas import UserCreate
@@ -56,7 +56,7 @@ class TestRegisterLogic:
         mock_db_session.query.return_value.filter.return_value.first.return_value = mock_user
         
         with pytest.raises(HTTPException) as exc_info:
-            register(user_data, mock_db_session)
+            register(mock_request, user_data, mock_db_session)
         
         assert exc_info.value.status_code == 409
         assert "already registered" in exc_info.value.detail
@@ -65,7 +65,7 @@ class TestRegisterLogic:
 class TestLoginLogic:
     """Tests for login logic."""
 
-    def test_login_success(self, mock_db_session, mock_user, mock_settings, rsa_key_pair):
+    def test_login_success(self, mock_db_session, mock_user, mock_settings, rsa_key_pair, mock_request):
         """Login with valid credentials returns tokens."""
         from app.api.routes.auth import login
         from fastapi.security import OAuth2PasswordRequestForm
@@ -85,12 +85,12 @@ class TestLoginLogic:
             with patch("app.core.jwt._private_key", rsa_key_pair["private"]):
                 with patch("app.core.jwt._public_key", rsa_key_pair["public"]):
                     with patch("app.core.jwt.get_settings", return_value=mock_settings):
-                        result = login(form, mock_db_session)
+                        result = login(mock_request, form, mock_db_session)
         
         assert result.access_token is not None
         assert result.token_type == "bearer"
 
-    def test_login_wrong_password_raises_401(self, mock_db_session, mock_user):
+    def test_login_wrong_password_raises_401(self, mock_db_session, mock_user, mock_request):
         """Login with wrong password raises HTTPException 401."""
         from app.api.routes.auth import login
         from fastapi.security import OAuth2PasswordRequestForm
@@ -103,11 +103,11 @@ class TestLoginLogic:
         form.password = "wrongpassword"
         
         with pytest.raises(HTTPException) as exc_info:
-            login(form, mock_db_session)
+            login(mock_request, form, mock_db_session)
         
         assert exc_info.value.status_code == 401
 
-    def test_login_nonexistent_user_raises_401(self, mock_db_session):
+    def test_login_nonexistent_user_raises_401(self, mock_db_session, mock_request):
         """Login with non-existent email raises HTTPException 401."""
         from app.api.routes.auth import login
         from fastapi.security import OAuth2PasswordRequestForm
@@ -119,11 +119,11 @@ class TestLoginLogic:
         form.password = "anypassword"
         
         with pytest.raises(HTTPException) as exc_info:
-            login(form, mock_db_session)
+            login(mock_request, form, mock_db_session)
         
         assert exc_info.value.status_code == 401
 
-    def test_login_inactive_user_raises_401(self, mock_db_session, mock_user):
+    def test_login_inactive_user_raises_401(self, mock_db_session, mock_user, mock_request):
         """Login with inactive user raises HTTPException 401."""
         from app.api.routes.auth import login
         from fastapi.security import OAuth2PasswordRequestForm
@@ -139,7 +139,7 @@ class TestLoginLogic:
         form.password = password
         
         with pytest.raises(HTTPException) as exc_info:
-            login(form, mock_db_session)
+            login(mock_request, form, mock_db_session)
         
         assert exc_info.value.status_code == 401
         assert "deactivated" in exc_info.value.detail
