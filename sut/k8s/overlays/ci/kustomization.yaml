@@ -62,7 +62,7 @@ patches:
     target:
       kind: Deployment
       name: frontend
-  # Vite dev server needs more resources than production builds
+  # Vite dev server needs more resources and startup time than production builds
   - patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/resources
@@ -73,6 +73,25 @@ patches:
           limits:
             memory: "512Mi"
             cpu: "500m"
+      # Vite dev server takes 30-60s to start in CI (dependency pre-bundling)
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe
+        value:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 6
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe
+        value:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          failureThreshold: 4
     target:
       kind: Deployment
       name: frontend
